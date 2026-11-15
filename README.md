@@ -65,7 +65,7 @@ Optional secrets: `MAIL_HOOK_URL` and `MAIL_HOOK_SECRET` (see `MAIL-HOOK.example
 ## Privacy
 
 - Settings stay in your browser unless you create the optional account, which stores your email, a hashed password and your synced settings.
-- Once a day the extension sends an anonymous ping (random install ID, version, alert channel). It can be switched off in Settings.
+- Once a day the extension sends an anonymous ping (random install ID, version, alert channel).
 - If Reply from Telegram is on, your replies wait on the server for up to 3 days until your extension collects them, then are deleted.
 - No analytics on the site and no tracking of what you do.
 

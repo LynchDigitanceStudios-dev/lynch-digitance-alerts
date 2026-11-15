@@ -467,7 +467,7 @@ footer{
         <a class="btn btn-ghost" href="#setup">5-minute setup</a>
       </div>
       <div class="meta">
-        <span><b id="vHero">v1.15.0</b> current</span>
+        <span><b id="vHero">v1.15.1</b> current</span>
         <span><b>Free</b> forever</span>
         <span><b>Chrome</b> &amp; Edge</span>
         <span><b>Multi-account</b> supported</span>
@@ -580,16 +580,16 @@ footer{
 
     <div class="grid3">
       <div class="feat rv"><div class="ico">🗂️</div>
-        <h3>Name your accounts</h3>
-        <p>Run one Chrome profile per Fiverr account, and give each one a label you'll recognise — "Main", "Design gigs". No more squinting at near-identical usernames to work out which inbox lit up.</p>
+        <h3>Every account named for you</h3>
+        <p>Run one Chrome profile per Fiverr account. Every alert shows that account's Fiverr username, so you always know which inbox lit up. Nothing to set up.</p>
       </div>
       <div class="feat rv"><div class="ico">🙈</div>
         <h3>Your replies stay quiet</h3>
         <p>Outgoing messages are filtered out, so you're only pinged when a buyer actually writes to you — not when you hit send.</p>
       </div>
       <div class="feat rv"><div class="ico">🔒</div>
-        <h3>Privacy mode</h3>
-        <p>Prefer message text never to leave your machine? Get "new message from buyer X" only, and open Fiverr to read it.</p>
+        <h3>Set up in a minute</h3>
+        <p>Paste your Telegram bot token, send your bot one message, and you're done. There is nothing else to configure.</p>
       </div>
     </div>
   </div>
@@ -695,26 +695,37 @@ footer{
   <div class="wrap">
     <div class="rv">
       <span class="eyebrow">What's new</span>
-      <h2 class="sec-h">Version <span id="vHead">1.15.0</span> is out.</h2>
+      <h2 class="sec-h">Version <span id="vHead">1.15.1</span> is out.</h2>
       <p class="sec-p">Already installed? Scroll past the notes — updating takes about thirty seconds and you keep every setting.</p>
     </div>
 
     <div style="margin-top:40px">
       <div class="rel rv">
         <div class="rel-top">
-          <span class="rel-v">v1.15.0</span>
+          <span class="rel-v">v1.15.1</span>
           <span class="tagpill">Latest</span>
+        </div>
+        <ul>
+          <li><b>Setup in about 30 seconds.</b> The Settings page is now just your Telegram bot, replies and your account. Everything else (offline warnings, desktop notifications, account names, the "still watching" message) is set sensibly for you, and each alert names the Fiverr username automatically.</li>
+          <li><b>Long messages arrive in full.</b> A 2,000-character buyer message now reaches Telegram complete, with no cut-off. Anything over Telegram's own limit is split into numbered parts, and replying to any part still goes to the right buyer.</li>
+          <li><b>Maintenance notices.</b> When the studio is working on the extension, it shows a clear "undergoing maintenance" screen and tells you on Telegram when it is back.</li>
+        </ul>
+      </div>
+
+      <div class="rel rv">
+        <div class="rel-top">
+          <span class="rel-v">v1.15.0</span>
         </div>
         <ul>
           <li><b>Long messages arrive in full.</b> A 2,000-character buyer message now reaches Telegram complete, with no cut-off. Anything over Telegram's own limit is split into numbered parts, and replying to any part still goes to the right buyer.</li>
           <li><b>Updates straight to your Telegram.</b> When something new is worth knowing, the studio can send a short message that every install forwards, once, to your own Telegram bot. New versions are announced the same way.</li>
-          <li><b>Anonymous install count.</b> Once a day the extension sends a random ID, its version and your alert channel, nothing else (no Fiverr data, messages or tokens). It lets the studio count installs that never made an account. Switch it off in Settings if you prefer.</li>
+          <li><b>Anonymous install count.</b> Once a day the extension sends a random ID, its version and your alert channel, nothing else (no Fiverr data, messages or tokens). It lets the studio count installs that never made an account.</li>
           <li><b>Reply to buyers from Telegram (optional).</b> Swipe-reply to an alert and the extension types your answer into that buyer's conversation on Fiverr. It works with several Fiverr accounts on one bot, is off until you switch it on, is allowed per account, starts in test mode and asks you to confirm before every send. It writes in your Fiverr tab, which Fiverr's rules may restrict, so try it on one account first.</li>
           <li><b>Sync no longer overwrites your changes.</b> Changing something on one computer (like a new Telegram bot token) now reaches your other computers, and pressing Sync now on the other one can no longer put the old value back. It also saves what you typed first and keeps you on the tab you were on.</li>
           <li><b>Opening a chat no longer floods Telegram.</b> The extension now spots a chat being opened the moment it starts, ignores every message that loads with it, judges messages by their own timestamps, and caps how many can be sent in a minute.</li>
           <li><b>Clearer "no account is currently active" alert.</b> It now lists the Fiverr accounts that were being watched and when each was last seen.</li>
           <li><b>Calmer popup.</b> Split into Home, Settings and Help tabs with more space, so it no longer feels crowded.</li>
-          <li><b>Sign in to sync your settings.</b> Create an account in the extension and your Telegram setup, account names and options follow you to any browser or computer. Sign in there and everything comes back.</li>
+          <li><b>Sign in to sync your settings.</b> Create an account in the extension and your Telegram setup follows you to any browser or computer. Sign in there and everything comes back.</li>
           <li><b>Opening a chat no longer floods Telegram.</b> Old messages that load when you open a conversation are now ignored; only new ones alert you.</li>
           <li><b>New copper and chrome look</b> across the extension, icons and site.</li>
         </ul>
@@ -794,7 +805,7 @@ footer{
       <span class="eyebrow">Updating</span>
       <h2 class="sec-h">Never uninstall. Just replace the files.</h2>
       <p class="sec-p">
-        Your settings — bot token, chat ID, account names — live in your browser, not in the
+        Your settings — bot token and chat ID — live in your browser, not in the
         extension folder. Replace the files and everything carries over untouched.
       </p>
     </div>
@@ -862,7 +873,7 @@ footer{
       </details>
       <details>
         <summary>Is there a backend? What data do you collect?</summary>
-        <p>Alerts go straight from your browser to your own Telegram bot, so buyer messages never pass through our server. Your settings live in your browser. If you create the optional extension account, we store your email, a scrambled (hashed) password, your synced settings (including your Telegram bot token and chat ID, so they follow you) and when you were last active. If you switch on Reply from Telegram, your replies pass through our server and wait there (up to 3 days) until your extension collects them, then they are deleted. The extension also sends an anonymous once-a-day ping (a random install ID, the version and your alert channel, nothing else) so installs can be counted; you can switch it off in Settings. No analytics on the site, no tracking of what you do, and we never see your Fiverr password.</p>
+        <p>Alerts go straight from your browser to your own Telegram bot, so buyer messages never pass through our server. Your settings live in your browser. If you create the optional extension account, we store your email, a scrambled (hashed) password, your synced settings (including your Telegram bot token and chat ID, so they follow you) and when you were last active. If you switch on Reply from Telegram, your replies pass through our server and wait there (up to 3 days) until your extension collects them, then they are deleted. The extension also sends an anonymous once-a-day ping (a random install ID, the version and your alert channel, nothing else) so installs can be counted. No analytics on the site, no tracking of what you do, and we never see your Fiverr password.</p>
       </details>
       <details>
         <summary>Why does Chrome say "Load unpacked" and developer mode?</summary>

@@ -7,7 +7,7 @@ const DEFAULTS = {
   enabled: true, channel: 'telegram', waNumber: '', apiKey: '',
   tgToken: '', tgChatId: '', webhookUrl: '',
   accountLabels: {}, maxNotifAgeMins: 60,
-  watchdog: true, watchdogMins: 20, heartbeatHours: 12, shareInstall: true,
+  watchdog: true, watchdogMins: 20, heartbeatHours: 8, shareInstall: true,
   privacyMode: false, debugMode: false, desktopNotif: true, quietUntil: 0, maxLen: 500
 };
 
@@ -106,20 +106,21 @@ save.onclick = async () => {
   tgToken.value = clean(tgToken.value);
   tgChatId.value = clean(tgChatId.value);
   await chrome.storage.local.set({
-    enabled: enabled.checked,
-    desktopNotif: desktopNotif.checked,
-    privacyMode: privacyMode.checked,
+    enabled: true,
+    desktopNotif: true,
+    privacyMode: false,
+    debugMode: false,
     channel: channel.value,
     waNumber: waNumber.value.replace(/[^0-9]/g, ''),
     apiKey: apiKey.value.trim(),
     tgToken: clean(tgToken.value),
     tgChatId: clean(tgChatId.value).replace(/[^0-9-]/g, ''),
     webhookUrl: webhookUrl.value.trim(),
-    accountLabels: collectLabels(),
-    watchdog: watchdog.checked,
-    shareInstall: shareInstall.checked,
-    watchdogMins: Math.max(5, Math.min(240, +watchdogMins.value || 20)),
-    heartbeatHours: Math.max(0, Math.min(168, +heartbeatHours.value || 0)),
+    accountLabels: {},
+    watchdog: true,
+    shareInstall: true,
+    watchdogMins: 20,
+    heartbeatHours: 8,
     maxLen: Math.max(100, Math.min(2000, +maxLen.value || 500)),
     maxNotifAgeMins: Math.max(5, Math.min(1440, +maxNotifAgeMins.value || 60)),
   });

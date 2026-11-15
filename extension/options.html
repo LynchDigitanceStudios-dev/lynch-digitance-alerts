@@ -364,7 +364,7 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
 
 
   <!-- ---------------- general ---------------- -->
-  <div class="sec">
+  <div class="sec" style="display:none">
     <div class="sec-t">General</div>
     <div class="row"><input type="checkbox" id="enabled"><label for="enabled">Enabled</label></div>
     <div class="row"><input type="checkbox" id="desktopNotif"><label for="desktopNotif">Show desktop notification too</label></div>
@@ -442,7 +442,7 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
   </div>
 
   <!-- ---------------- accounts ---------------- -->
-  <div class="sec">
+  <div class="sec" style="display:none">
     <div class="sec-t">Account names</div>
     <div class="hint" style="margin-bottom:9px">
       Give each Fiverr account a name you'll recognise instantly in Telegram.
@@ -465,7 +465,7 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
   </div>
 
   <!-- ---------------- uptime ---------------- -->
-  <div class="sec">
+  <div class="sec" style="display:none">
     <div class="sec-t">Uptime</div>
     <div class="hint" style="margin-bottom:9px">
       For unattended machines. A tab that logs out or crashes stops watching
@@ -501,7 +501,7 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
     <div id="scanOut"></div>
     <div id="dx"></div>
   </div>
-  <div class="sec" style="margin-bottom:0">
+  <div class="sec" style="margin-bottom:0;display:none">
     <div class="sec-t">Troubleshooting</div>
     <div class="row"><input type="checkbox" id="debugMode"><label for="debugMode">Debug mode — capture what Fiverr emits</label></div>
     <div class="btns" style="margin-top:8px">

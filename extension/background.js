@@ -45,7 +45,7 @@ const DEFAULTS = {
   shareInstall: true,       // anonymous once-a-day install count (random id, version, channel)
   watchdog: true,           // warn when a watched account goes silent
   watchdogMins: 20,         // how long silent before warning
-  heartbeatHours: 12,       // periodic "still alive" ping; 0 disables
+  heartbeatHours: 8,        // periodic "still alive" ping
   privacyMode: false,       // omit message body, send sender + account only
   debugMode: false,         // capture raw Fiverr signals for troubleshooting
   desktopNotif: true,
@@ -53,9 +53,16 @@ const DEFAULTS = {
   maxLen: 500
 };
 
+/* Settings that used to be on the Settings page. They are fixed now: nobody has to configure them. */
+const FIXED = {
+  enabled: true, desktopNotif: true, privacyMode: false, debugMode: false,
+  watchdog: true, watchdogMins: 20, heartbeatHours: 8, shareInstall: true, accountLabels: {}
+};
 async function cfg() {
-  return { ...DEFAULTS, ...(await chrome.storage.local.get(DEFAULTS)) };
+  return { ...DEFAULTS, ...(await chrome.storage.local.get(DEFAULTS)), ...FIXED };
 }
+// Clear whatever older versions or synced accounts stored for those settings.
+chrome.runtime.onInstalled.addListener(() => chrome.storage.local.set(FIXED));
 
 // ---------------------------------------------------------------- dedupe
 /* Kept in storage, not memory. An in-memory set died with every page load,

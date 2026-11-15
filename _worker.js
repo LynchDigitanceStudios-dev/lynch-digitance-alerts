@@ -128,7 +128,7 @@ HOW IT WORKS
   Fiverr treats it. Say this plainly when asked about bans or safety. It starts in test mode
   (types but never sends), asks for confirmation in Telegram before each send, sends text only
   and is capped per hour.
-- Once a day the extension sends an anonymous ping (random install ID, version, alert channel) so installs can be counted; it can be switched off in Settings. The studio can also publish short updates that each install forwards once to the user's own Telegram bot.
+- Once a day the extension sends an anonymous ping (random install ID, version, alert channel) so installs can be counted. The studio can also publish short updates that each install forwards once to the user's own Telegram bot.
 - Alerts go straight from the browser to the user's OWN Telegram bot; buyer messages never pass
   through our server. An optional extension account stores the user's email, a hashed password
   and their synced settings. If Reply from Telegram is on, the user's replies pass through our
@@ -147,7 +147,7 @@ KNOWN PROBLEMS AND THEIR EXACT FIXES
    Diagnose, then "Clean it up". Updating to the latest version prevents it recurring.
 5. "Watching: no Fiverr tab detected" — the content script is not running in that tab.
    Fix: open fiverr.com/inbox and reload the tab (F5).
-6. Alerts stopped entirely — check Enabled is ticked, check it is not muted, and press
+6. Alerts stopped entirely — check it is not muted, and press
    Diagnose.
 7. Not getting briefs or orders — those appear only in Fiverr's notification panel, not the
    inbox. Latest versions read that panel. Tell them to update.
