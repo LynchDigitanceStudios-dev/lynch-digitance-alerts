@@ -123,11 +123,10 @@ HOW IT WORKS
 - By default it passively reads what the user's already-open Fiverr tab has loaded. It never
   sends any request to Fiverr, never logs in, never clicks, never automates the account.
 - The ONE exception is the optional "Reply from Telegram" feature (off until switched on, then
-  allowed per Fiverr account). It types the user's own reply into their logged-in Fiverr tab and
+  on). It types the user's own reply into their logged-in Fiverr tab and
   presses Send. That is automation, Fiverr's rules may restrict it, and nobody can promise how
-  Fiverr treats it. Say this plainly when asked about bans or safety. It starts in test mode
-  (types but never sends), asks for confirmation in Telegram before each send, sends text only
-  and is capped per hour.
+  Fiverr treats it. Say this plainly when asked about bans or safety. Every reply is confirmed in
+  Telegram before it is sent, only text is sent and it is capped per hour.
 - Once a day the extension sends an anonymous ping (random install ID, version, alert channel) so installs can be counted. The studio can also publish short updates that each install forwards once to the user's own Telegram bot.
 - Alerts go straight from the browser to the user's OWN Telegram bot; buyer messages never pass
   through our server. An optional extension account stores the user's email, a hashed password
@@ -548,6 +547,14 @@ async function handleTelegram(request, env, routeKey) {
   if (u.callback_query) {
     const q = u.callback_query;
     if (!q.message || String(q.message.chat && q.message.chat.id) !== String(route.chatId)) return ok();
+    if (q.data === 'rp') {                       // the ↩️ Reply button under an alert
+      const target = parseAlert(q.message.text);
+      if (!target) return ok();
+      await queueCmd(env, route.email, target.account, {
+        id: rid(8), t: 'prompt', buyer: target.buyer, cb: q.id, msgId: q.message.message_id, at: now
+      });
+      return ok();
+    }
     const mm = /^fvr:([a-z0-9]{8}):([yn])$/.exec(q.data || '');
     if (!mm) return ok();
     const meta = await env.ACCOUNTS.get('cmd:' + mm[1], 'json');

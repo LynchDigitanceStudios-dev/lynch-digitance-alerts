@@ -658,7 +658,7 @@ setInterval(load, 5000);
     const s = await chrome.storage.local.get({ replyEnabled: false, replyAccounts: {}, replyMode: 'test',
       replyConfirm: true, fvnAccounts: {}, accountLabels: {} });
     $('replyEnabled').checked = s.replyEnabled;
-    $('replyBody').style.display = s.replyEnabled ? 'block' : 'none';
+    $('replyBody').style.display = 'none';                       // one switch only: no per-account ticks, modes or tests
     $('replyMode').value = s.replyMode;
     $('replyConfirm').checked = s.replyConfirm;
 
@@ -693,13 +693,30 @@ setInterval(load, 5000);
         $('replyMsg').textContent = r?.error || 'Could not turn it on.';
         return;
       }
-      $('replyMsg').textContent = 'On. Tick the Fiverr accounts you want below. It starts in test mode, so nothing is sent yet.';
+      $('replyMsg').textContent = 'On. Under each buyer alert in Telegram you now get a ↩️ Reply button.';
     } else {
       $('replyMsg').textContent = '';
     }
     await chrome.storage.local.set({ replyEnabled: on });
     renderReply();
+    if (on) setTimeout(showReplyStatus, 1500);
   };
+
+  /* What the extension can actually see right now, in plain words. */
+  async function showReplyStatus() {
+    const s = await chrome.runtime.sendMessage({ kind: 'fvn-reply-status' });
+    if (!s || !s.enabled) return;
+    const st = s.state || {};
+    const ago = st.at ? Math.max(0, Math.round((Date.now() - st.at) / 1000)) + ' s ago' : 'not checked yet';
+    const lines = {
+      'signed-out': 'Replies are on, but you are not signed in to your extension account. Sign in above.',
+      'no-telegram': 'Replies are on, but Telegram is not set up here (bot token and chat ID).',
+      'no-fiverr-tab': 'Replies are on, but no Fiverr tab is open in this browser. Open your Fiverr inbox and keep the tab open.',
+      'error': 'Replies are on, but the relay answered with an error: ' + (st.error || 'unknown') + '.',
+      'ok': 'Replies are ready. Listening for: ' + ((st.accounts || []).join(', ') || '—') + ' (checked ' + ago + ').'
+    };
+    $('replyMsg').textContent = lines[st.state] || 'Replies are on. Checking… reopen this page in a minute for the status.';
+  }
   $('replyMode').onchange = () => chrome.storage.local.set({ replyMode: $('replyMode').value });
   $('replyConfirm').onchange = () => chrome.storage.local.set({ replyConfirm: $('replyConfirm').checked });
 
@@ -712,6 +729,7 @@ setInterval(load, 5000);
   };
 
   renderReply();
+  showReplyStatus();
 })();
 
 

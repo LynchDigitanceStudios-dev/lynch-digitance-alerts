@@ -54,12 +54,12 @@ Updating
 - Never uninstall to update, and never move the folder afterwards. Both wipe the settings.
 
 Reply from Telegram (optional, off by default)
-- Swipe-reply to an alert in Telegram and the extension types your reply into that buyer's conversation on Fiverr. It needs an extension account (Account section) and Telegram set up. Turn it on in Settings → Reply from Telegram, then tick the Fiverr accounts to allow. It starts in Test mode, which types the text but does not send. Switch to Live when you are happy. By default it asks you to confirm in Telegram first (✅ Send / ✖ Cancel).
+- Turn it on in Settings → Reply from Telegram (needs a free extension account and Telegram set up). Then every buyer alert in Telegram has a ↩️ Reply button: tap it, type your answer in the box that opens, and press ✅ Send in the confirmation. Swiping to reply to an alert works too. The answer is typed into that buyer's chat on Fiverr and sent from the right account.
+- It asks you to confirm every reply in Telegram before anything is sent. Plain text only, at most 15 replies an hour per account, and it never retries a send.
 - It writes in the Fiverr tab, which is automation. Fiverr's rules may restrict it and nobody can promise how Fiverr treats it, so suggest trying it on one account first.
-- Several Fiverr accounts can share one bot: the alert you reply to names the Fiverr account and the buyer, so the reply goes to the right browser profile. You can reply to an old alert. A reply that arrives late always asks you to confirm.
-- It sends plain text only, at most 15 replies an hour per account, and never retries a send.
-- While it is on, "Detect chat ID" does not work, because Telegram lets a bot be listened to only one way. Turn it off first.
-- If a reply does not go out: the Fiverr tab for that account must be open in that browser. Open a conversation and press "Test the message box" to see what the extension can find.
+- Several Fiverr accounts can share one bot. Each browser profile must run the latest version, be signed in to the extension account with Reply turned on, and have that Fiverr account's tab open. You can reply to old alerts too; a late reply always asks you to confirm.
+- While it is on, "Detect chat ID" does not work.
+- If a reply does not go out, open Settings → Reply from Telegram: it says what the extension can see (signed in, Telegram set up, Fiverr tab open).
 
 Studio updates
 - The studio can publish a short update. Each install forwards it once to the user's own Telegram bot. New versions are announced to Telegram the same way.

@@ -157,7 +157,7 @@ function tgParts(text) {
 }
 
 // ---------------------------------------------------------------- delivery
-async function send(text, c) {
+async function send(text, c, kb) {
   try {
     if (c.channel === 'callmebot') {
       if (!c.waNumber || !c.apiKey) return { ok: false, reason: 'missing-number-or-apikey' };
@@ -208,7 +208,7 @@ async function send(text, c) {
         const r = await fetch(`https://api.telegram.org/bot${c.tgToken}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: c.tgChatId, text: part, disable_web_page_preview: true })
+          body: JSON.stringify(Object.assign({ chat_id: c.tgChatId, text: part, disable_web_page_preview: true }, kb ? { reply_markup: kb } : {}))
         });
         const j = await r.json().catch(() => ({}));
         if (!j.ok) return { ok: false, reason: j.description || ('http-' + r.status) };
@@ -243,7 +243,7 @@ async function drain() {
     while (queue.length) {
       const c = await cfg();
       const item = queue[0];
-      const r = await send(item.text, c);
+      const r = await send(item.text, c, item.kb);
       await log({ ts: Date.now(), account: item.account, from: item.from,
                   type: item.type, delivered: r.ok, reason: r.reason || '' });
       if (r.ok) {
@@ -709,9 +709,14 @@ const sleepMs = ms => new Promise(r => setTimeout(r, ms));
 const acksFor = {};                 // account -> ids to acknowledge on the next poll
 let replyBusy = false, replyTickN = 0;
 
-const RC_DEF = { replyEnabled: false, replyAccounts: {}, replyMode: 'test', replyConfirm: true,
+const RC_DEF = { replyEnabled: false, replyAccounts: {}, replyMode: 'live', replyConfirm: true,
                  replySeen: [], replyPending: {}, replySent: {} };
-const replyCfg = () => chrome.storage.local.get(RC_DEF);
+// One switch: when replies are on they work for every account in this browser, and every send is confirmed in Telegram.
+const replyCfg = async () => ({ ...(await chrome.storage.local.get(RC_DEF)), replyMode: 'live', replyConfirm: true });
+const REPLY_BTN = { inline_keyboard: [[{ text: '↩️ Reply', callback_data: 'rp' }]] };
+async function setReplyState(state, extra) {
+  await chrome.storage.local.set({ replyState: Object.assign({ at: Date.now(), state }, extra || {}) });
+}
 
 async function tgApi(token, method, body) {
   try {
@@ -824,10 +829,6 @@ async function runReply(id, c) {
 
 async function handleRelayItem(account, item, c, rc) {
   if (item.t === 'reply') {
-    if (!rc.replyAccounts[account]) {
-      return tgNote(c, '↩️ Replies are switched off for ' + account +
-        '. Turn them on in the extension: Settings → Reply from Telegram.');
-    }
     const ageMin = (Date.now() - item.at) / 60000;
     const ask = rc.replyConfirm || ageMin > 5;          // a late reply ALWAYS asks first
     const pending = rc.replyPending;
@@ -855,6 +856,15 @@ async function handleRelayItem(account, item, c, rc) {
     return;
   }
 
+  if (item.t === 'prompt') {
+    tgApi(c.tgToken, 'answerCallbackQuery', { callback_query_id: item.cb });
+    // The prompt looks like one of our alerts, so the answer you type routes to the right account and buyer.
+    return tgNote(c, ['LYNCH DIGITANCE · ALERTS', '💬 Fiverr · ' + account, 'From: ' + item.buyer, '',
+      '✍️ Type your reply to ' + item.buyer + ' below. It will be sent from ' + account + '.', '',
+      'https://www.fiverr.com/inbox/' + item.buyer].join('\n'),
+      { reply_markup: { force_reply: true, input_field_placeholder: 'Reply to ' + item.buyer } });
+  }
+
   if (item.t === 'confirm') {
     tgApi(c.tgToken, 'answerCallbackQuery', { callback_query_id: item.cb });   // stop the button spinner
     const p = rc.replyPending[item.cmd];
@@ -877,21 +887,21 @@ async function handleRelayItem(account, item, c, rc) {
 
 async function replyPollOnce() {
   const rc = await replyCfg();
-  if (!rc.replyEnabled) return;
+  if (!rc.replyEnabled) return setReplyState('off');
   const { acctToken, fvnAccounts = {} } = await chrome.storage.local.get(['acctToken', 'fvnAccounts']);
-  if (!acctToken) return;
+  if (!acctToken) return setReplyState('signed-out');
   const c = await cfg();
-  if (c.channel !== 'telegram' || !c.tgToken || !c.tgChatId) return;
+  if (c.channel !== 'telegram' || !c.tgToken || !c.tgChatId) return setReplyState('no-telegram');
 
   const mine = Object.entries(fvnAccounts)
     .filter(([u, t]) => isRealUser(u) && Date.now() - t < 15 * 60 * 1000).map(([u]) => u);
+  if (!mine.length) return setReplyState('no-fiverr-tab');
+  let bad = '';
   for (const account of mine) {
-    // Accounts with replies switched off are only checked now and then, to tell you they're off.
-    if (!rc.replyAccounts[account] && replyTickN % 10 !== 0) continue;
     const ack = acksFor[account] || [];
     const r = await acctFetch('/relay/poll?account=' + encodeURIComponent(account) +
       (ack.length ? '&ack=' + ack.join(',') : ''), 'GET');
-    if (!r.ok) continue;
+    if (!r.ok) { bad = (r.data && r.data.error) || ('http ' + r.status); continue; }
     acksFor[account] = [];
     for (const item of (r.data.items || [])) {
       acksFor[account].push(item.id);
@@ -899,9 +909,14 @@ async function replyPollOnce() {
       if (st.replySeen.includes(item.id)) continue;                    // already handled
       st.replySeen.push(item.id);
       await chrome.storage.local.set({ replySeen: st.replySeen.slice(-300) });
-      try { await handleRelayItem(account, item, c, await replyCfg()); } catch (e) {}
+      try { await handleRelayItem(account, item, c, await replyCfg()); }
+      catch (e) {
+        await log({ ts: Date.now(), account, from: item.buyer || '', type: 'reply', delivered: false, reason: 'reply error: ' + e });
+        await tgNote(c, '⚠️ Something went wrong handling your reply for ' + account + ':\n' + e);
+      }
     }
   }
+  await setReplyState(bad ? 'error' : 'ok', { accounts: mine, error: bad });
 }
 
 /* An alarm can only fire every 30 seconds, so each one checks three times, 10 s apart. */
@@ -1005,6 +1020,12 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       return reply({ ok: true });
     }
 
+    if (msg.kind === 'fvn-reply-status') {
+      const rc = await replyCfg();
+      const { replyState = null, acctToken } = await chrome.storage.local.get(['replyState', 'acctToken']);
+      return reply({ enabled: rc.replyEnabled, signedIn: !!acctToken, state: replyState });
+    }
+
     if (msg.kind === 'fvn-debug') {
       const { fvnDebug = [] } = await chrome.storage.local.get('fvnDebug');
       fvnDebug.unshift(msg.entry);
@@ -1032,7 +1053,9 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
         } catch {}
       }
 
-      queue.push({ text: format(e, c), account: e.account, from: e.from, type: e.type });
+      const rcx = await replyCfg();
+      const kb = (rcx.replyEnabled && e.type === 'message' && e.from && !c.privacyMode) ? REPLY_BTN : undefined;
+      queue.push({ text: format(e, c), account: e.account, from: e.from, type: e.type, kb });
       drain();
       return reply({ ok: true, queued: queue.length });
     }
