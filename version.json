@@ -1,0 +1,5 @@
+{
+  "version": "1.15.0",
+  "notes": "New: reply to buyers straight from Telegram. Swipe-reply to an alert and the extension types your answer into that buyer's conversation on Fiverr. It is optional and OFF by default, switched on per Fiverr account, starts in test mode and asks you to confirm before every send. Also: the studio can now send short updates to your Telegram, and installs are counted anonymously once a day (switchable off in Settings).",
+  "url": "https://alerts.lynchdigitancestudios.workers.dev/lynch-digitance-alerts.zip"
+}
