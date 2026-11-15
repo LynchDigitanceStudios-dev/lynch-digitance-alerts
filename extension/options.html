@@ -244,7 +244,26 @@ label{margin:16px 0 7px}
 </style>
 </head>
 <body>
-<div id="maintBar" hidden style="background:#c0392b;color:#fff;padding:10px 14px;font:700 13px/1.4 system-ui,sans-serif;text-align:center;letter-spacing:.02em"></div>
+<div id="maintScreen" hidden>
+  <div class="mt-box">
+    <img src="icon128.png" alt="" width="64" height="64">
+    <div class="mt-tag">LYNCH DIGITANCE · ALERTS</div>
+    <h1>🔧 UNDERGOING MAINTENANCE</h1>
+    <p id="maintMsg">We are working on the extension. Alerts may be delayed for a while.</p>
+    <p class="mt-sub">We will message you on Telegram as soon as it is back to normal.</p>
+  </div>
+</div>
+<style>
+body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
+#maintScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 20px;box-sizing:border-box;background:#0b2038;color:#f4f1ea;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;text-align:center}
+#maintScreen[hidden]{display:none}
+.mt-box{max-width:340px}
+.mt-box img{margin:0 auto 14px;display:block}
+.mt-tag{font-size:11px;font-weight:700;letter-spacing:.16em;color:#F2B583;margin-bottom:10px}
+.mt-box h1{font-size:22px;line-height:1.2;margin:0 0 14px;color:#fff}
+.mt-box p{margin:0 0 10px;font-size:14px;line-height:1.55;color:#cbd6e6}
+.mt-box .mt-sub{color:#a9b5c7;font-size:12.5px}
+</style>
 
 <header>
   <div class="brand">

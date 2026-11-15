@@ -714,13 +714,15 @@ setInterval(load, 5000);
 })();
 
 
-/* Studio maintenance banner (pushed from the admin page). */
+/* Studio maintenance: while ON the whole page is replaced by the maintenance screen (no home, no settings). */
 (function () {
-  const bar = document.getElementById('maintBar');
-  if (!bar) return;
+  const scr = document.getElementById('maintScreen');
+  if (!scr) return;
   const show = m => {
-    if (m && m.on) { bar.textContent = '🔧 UNDERGOING MAINTENANCE' + (m.msg ? ' — ' + m.msg : ''); bar.hidden = false; }
-    else bar.hidden = true;
+    const on = !!(m && m.on);
+    document.body.classList.toggle('maint', on);
+    scr.hidden = !on;
+    if (on && m.msg) document.getElementById('maintMsg').textContent = m.msg;
   };
   chrome.storage.local.get('fvnMaint', d => show(d.fvnMaint));
   chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.fvnMaint) show(ch.fvnMaint.newValue); });
