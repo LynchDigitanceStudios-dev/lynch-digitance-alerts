@@ -1,0 +1,26 @@
+{
+  // Lynch AI inside the Lynch Digitance Alerts extension.
+  // Deploys to https://alerts-ai.lynchdigitancestudios.workers.dev/chat
+  //
+  // Deliberately separate from the website assistant that lives in the site
+  // Worker. This one holds ONLY Alerts knowledge, so the two can never bleed
+  // into each other and the extension can't be talked into discussing anything
+  // else. Same reasoning as the Auto Refresh AI worker.
+  "name": "alerts-ai",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+
+  // Cloudflare Workers AI on your own account: no API key, no per-token bill.
+  "ai": { "binding": "AI" },
+
+  // Per-user throttle so nobody can loop the chat and burn the daily allowance.
+  // Its own namespace_id — sharing one with another worker would mean traffic
+  // here throttles that one too.
+  "ratelimits": [
+    {
+      "name": "CHAT_LIMITER",
+      "namespace_id": "1003",
+      "simple": { "limit": 12, "period": 60 }
+    }
+  ]
+}
