@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorry to see you go — Lynch Digitance Alerts</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon128.png">
+<style>
+:root{
+  --gold:#D97A3D; --gold-lt:#F2B583; --gold-dk:#A6511F;
+  --ink:#0b2038; --panel:#123059; --line:rgba(217,122,61,.18);
+  --text:#f4f1ea; --muted:#a9b5c7; --ok:#4ad991;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;background:var(--ink);color:var(--text);
+  font:16px/1.65 "Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  display:flex;align-items:center;justify-content:center;padding:32px 20px;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+.glow{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
+.glow.a{width:520px;height:520px;background:rgba(217,122,61,.12);top:-180px;left:-140px}
+.glow.b{width:420px;height:420px;background:rgba(217,122,61,.06);bottom:-160px;right:-120px}
+
+.card{position:relative;z-index:1;max-width:560px;width:100%;text-align:center}
+.logo{height:74px;width:auto;margin:0 auto 28px}
+h1{font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:0 0 16px}
+.grad{
+  background:linear-gradient(100deg,#fff 0%,#fff 34%,var(--gold-lt) 52%,var(--gold) 70%,var(--gold-dk) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.lede{color:var(--muted);font-size:16.5px;margin:0 auto 30px;max-width:44ch}
+
+.q{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.opts{display:grid;gap:9px;margin-bottom:22px;text-align:left}
+.opt{
+  padding:13px 16px;border-radius:12px;cursor:pointer;font:inherit;font-size:14.5px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:var(--text);
+  transition:border-color .2s,background .2s,transform .15s;text-align:left;
+}
+.opt:hover{border-color:var(--gold);background:rgba(217,122,61,.07);transform:translateX(3px)}
+.opt.sel{border-color:var(--gold);background:rgba(217,122,61,.12)}
+
+textarea{
+  width:100%;min-height:84px;resize:vertical;padding:12px 14px;border-radius:12px;
+  background:var(--panel);border:1px solid rgba(255,255,255,.08);color:var(--text);
+  font:inherit;font-size:14px;outline:none;margin-bottom:14px;
+}
+textarea:focus{border-color:var(--gold)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:13px 26px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;
+  border:1px solid transparent;cursor:pointer;font-family:inherit;
+  transition:transform .18s,box-shadow .25s,border-color .2s,color .2s;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--gold-lt),var(--gold) 45%,var(--gold-dk));
+  color:#1a1200;box-shadow:0 10px 30px -10px rgba(217,122,61,.6);
+}
+.btn-primary:hover{transform:translateY(-2px)}
+.btn-primary:disabled{opacity:.45;cursor:default;transform:none}
+.btn-ghost{border-color:var(--line);color:var(--text);background:rgba(255,255,255,.02)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.row{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+
+.thanks{display:none}
+.thanks.on{display:block}
+.form.off{display:none}
+.tick{
+  width:56px;height:56px;border-radius:50%;margin:0 auto 20px;display:grid;place-items:center;
+  background:rgba(74,217,145,.12);border:1px solid rgba(74,217,145,.4);color:var(--ok);font-size:26px;
+}
+
+.help{
+  margin-top:34px;padding-top:22px;border-top:1px solid rgba(255,255,255,.07);
+  color:var(--muted);font-size:14px;
+}
+.help a{color:var(--gold)}
+.foot{margin-top:26px;color:#6d675c;font-size:12px;letter-spacing:.04em}
+.foot b{color:var(--muted);font-weight:700}
+</style>
+</head>
+<body>
+<div class="glow a"></div><div class="glow b"></div>
+
+<div class="card">
+  <img class="logo" src="assets/logo.png" alt="Lynch Digitance Studios">
+
+  <div class="form" id="form">
+    <h1>Sorry to see you <span class="grad">go</span>.</h1>
+    <p class="lede">
+      The extension has been removed. Before you close this tab — what made you
+      uninstall it? One click is enough, and it genuinely shapes what gets fixed next.
+    </p>
+
+    <div class="q">What went wrong?</div>
+    <div class="opts" id="opts">
+      <button class="opt" data-r="not-working">It wasn't working — I never got alerts</button>
+      <button class="opt" data-r="setup">Setup was too complicated</button>
+      <button class="opt" data-r="too-many">Too many alerts, or the wrong ones</button>
+      <button class="opt" data-r="updating">Updating it was too much hassle</button>
+      <button class="opt" data-r="no-need">I don't need Fiverr alerts any more</button>
+      <button class="opt" data-r="other">Something else</button>
+    </div>
+
+    <textarea id="note" placeholder="Anything else? (optional)"></textarea>
+
+    <div class="row">
+      <button class="btn btn-primary" id="send" disabled>Send feedback</button>
+      <a class="btn btn-ghost" href="/">Reinstall it</a>
+    </div>
+  </div>
+
+  <div class="thanks" id="thanks">
+    <div class="tick">✓</div>
+    <h1>Thank you.</h1>
+    <p class="lede">
+      That's genuinely useful. If it was something broken, it's worth knowing that most
+      faults come down to one missed setup step — and the assistant can usually spot it
+      in seconds.
+    </p>
+    <div class="row">
+      <a class="btn btn-primary" href="/">Give it another try</a>
+      <a class="btn btn-ghost" href="/#faq">Read the FAQ</a>
+    </div>
+  </div>
+
+  <div class="help">
+    Changed your mind, or was it a fault? <a href="/">Reinstall in 30 seconds</a> —
+    your Telegram settings are still saved in your browser, so there's nothing to set up again.
+  </div>
+
+  <div class="foot">Built by <b>LYNCH DIGITANCE STUDIOS</b> · Create • Capture • Elevate</div>
+</div>
+
+<script>
+const params  = new URLSearchParams(location.search);
+const version = params.get('v') || 'unknown';
+let reason = null;
+
+document.getElementById('opts').addEventListener('click', e => {
+  const btn = e.target.closest('.opt');
+  if (!btn) return;
+  document.querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+  btn.classList.add('sel');
+  reason = btn.dataset.r;
+  document.getElementById('send').disabled = false;
+});
+
+document.getElementById('send').onclick = async () => {
+  const btn = document.getElementById('send');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  /* Best-effort. If the endpoint isn't wired up we still thank them — a
+     failed POST is not the user's problem and shouldn't be shown to them. */
+  try {
+    await fetch('/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reason,
+        note: document.getElementById('note').value.slice(0, 1000),
+        version,
+        at: new Date().toISOString()
+      })
+    });
+  } catch {}
+
+  document.getElementById('form').classList.add('off');
+  document.getElementById('thanks').classList.add('on');
+};
+</script>
+</body>
+</html>
