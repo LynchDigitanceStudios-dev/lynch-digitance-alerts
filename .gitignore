@@ -1,0 +1,9 @@
+# never commit secrets or local tooling
+MAIL-HOOK.gs
+.dev.vars
+.env
+.env.*
+**/PRIVATE-SECRETS*
+node_modules/
+.wrangler/
+*.log

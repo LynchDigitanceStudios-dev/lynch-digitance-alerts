@@ -1,0 +1,28 @@
+name = "alerts"
+main = "_worker.js"
+compatibility_date = "2026-01-01"
+
+# Serves the static site. Any request the Worker doesn't handle (everything
+# except /ai) falls through to these files.
+[assets]
+directory = "."
+binding = "ASSETS"
+
+# Workers AI — this is what powers LYNCH AI ASSISTANT.
+# No API key: the binding gives the Worker access directly, so nothing secret
+# ever ships to the browser or the extension.
+[ai]
+binding = "AI"
+
+# Accounts: settings sync for the extension (email -> hashed password + settings).
+[[kv_namespaces]]
+binding = "ACCOUNTS"
+id = "2f2ba3b453b74c3da1f70d6824bf33c1"
+
+# Brake on admin password guessing: 5 attempts a minute per visitor.
+[[ratelimits]]
+name = "ADMIN_LIMITER"
+namespace_id = "1004"
+  [ratelimits.simple]
+  limit = 5
+  period = 60

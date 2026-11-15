@@ -1,0 +1,19 @@
+# Files in this folder that must NOT be served as part of the public site.
+# The Worker script and its config are deployed as code, not as downloads, and
+# the docs are for you rather than for visitors.
+_worker.js
+wrangler.toml
+.assetsignore
+AI-SETUP.md
+DEPLOY.md
+RELEASING.md
+MAIL-HOOK.gs
+ai-worker
+extension
+README.md
+.gitignore
+.github
+.git
+MAIL-HOOK.example.gs
+.wrangler
+node_modules

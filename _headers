@@ -1,0 +1,26 @@
+# Cloudflare Pages / Netlify header rules.
+#
+# version.json is the update announcement. Cloudflare caches static assets hard
+# by default, and a cached copy means users keep being told the OLD version is
+# current long after a release. It must always be fetched fresh.
+/version.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+
+# The extension fetches version.json from a chrome-extension:// origin, so the
+# download needs to be reachable cross-origin too.
+/lynch-digitance-alerts.zip
+  Cache-Control: public, max-age=300
+  Access-Control-Allow-Origin: *
+
+/assets/*
+  Cache-Control: public, max-age=86400
+
+/admin
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/admin.html
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
