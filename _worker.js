@@ -250,6 +250,7 @@ export default {
       if (url.pathname === '/admin/delete' && request.method === 'POST') return adminDelete(request, env);
       if (url.pathname === '/admin/announce' && request.method === 'POST') return adminAnnounce(request, env);
       if (url.pathname === '/admin/email' && request.method === 'POST') return adminEmail(request, env);
+      if (url.pathname === '/admin/maintenance' && request.method === 'POST') return adminMaintenance(request, env);
       return ajson({ error: 'Not found' }, 404);
     }
 
@@ -621,7 +622,8 @@ async function adminUsers(request, env) {
     ic = r.list_complete ? null : r.cursor;
   } while (ic && installs.length < 5000);
   const announce = await env.ACCOUNTS.get('announce:latest', 'json');
-  return ajson({ users, total: users.length, pending, installs, announce, mail: !!(env.MAIL_HOOK_URL && env.MAIL_HOOK_SECRET) });
+  const maint = await env.ACCOUNTS.get('maint:state', 'json');
+  return ajson({ users, total: users.length, pending, installs, announce, maint: maint || { on: false }, mail: !!(env.MAIL_HOOK_URL && env.MAIL_HOOK_SECRET) });
 }
 
 async function adminAuth(request, env) {
@@ -669,7 +671,19 @@ async function handlePing(request, env) {
  *      and sends it to its OWN Telegram bot (so it reaches people without an account too). ---- */
 async function handleAnnounce(env) {
   const a = await env.ACCOUNTS.get('announce:latest', 'json');
-  return ajson(a || {});
+  const maint = await env.ACCOUNTS.get('maint:state', 'json');
+  return ajson({ ...(a || {}), maint: maint || { on: false } });
+}
+/* Maintenance switch: every install (and the website) shows "UNDERGOING MAINTENANCE" while it is on. */
+async function adminMaintenance(request, env) {
+  if (!(await adminAuth(request, env))) return ajson({ error: 'Signed out.' }, 401);
+  let b = {}; try { b = await request.json(); } catch { return ajson({ error: 'Bad request' }, 400); }
+  const prev = await env.ACCOUNTS.get('maint:state', 'json');
+  const on = !!b.on;
+  const msg = String(b.msg || '').trim().slice(0, 400) || 'The service is undergoing maintenance. Alerts may be delayed. You will be told when it is back.';
+  const st = { on, msg, id: (prev && prev.on === on && prev.id) ? prev.id : rid(8), at: Date.now() };
+  await env.ACCOUNTS.put('maint:state', JSON.stringify(st));
+  return ajson({ ok: true, maint: st });
 }
 async function adminAnnounce(request, env) {
   if (!(await adminAuth(request, env))) return ajson({ error: 'Signed out.' }, 401);

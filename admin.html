@@ -93,6 +93,14 @@ textarea:focus,input[type=text]:focus{border-color:var(--gold)}
 
   <p class="note" id="note"></p>
 
+  <div class="box" id="mBox">
+    <h2>Maintenance mode <span class="pill" id="mState">off</span></h2>
+    <p>While it is on, every extension shows <b>UNDERGOING MAINTENANCE</b> (popup banner, tag on each alert, and a one-time Telegram notice), and so does the website. Turning it off tells everyone it is back. Reaches installs on the latest build, within about 15 minutes.</p>
+    <textarea id="mMsg" style="min-height:70px" maxlength="400">The extension is undergoing maintenance. Alerts may be delayed for a while. We will message you here as soon as it is back to normal.</textarea>
+    <div class="row2"><button class="btn" id="mOn">Turn maintenance ON</button><button class="ghost" id="mOff">Turn it OFF</button></div>
+    <div class="msg" id="mMsgOut"></div>
+  </div>
+
   <div class="box">
     <h2>Send an update</h2>
     <p><b>To everyone's Telegram.</b> Every extension picks this up within about 15 minutes (the browser must be open) and sends it to its own Telegram bot, once. It reaches people without an account too, but only on version 1.15.0 or newer.</p>
@@ -164,6 +172,9 @@ async function load() {
   users = r.d.users.map(u => Object.assign(u, { name: u.email, inst: false }))
     .concat((r.d.installs || []).filter(i => !i.acct).map(i => ({ id: i.id, name: i.id.slice(0, 8), inst: true, joined: i.joined, last: i.last, ver: i.ver, channel: i.channel, reply: false })));
   ann = r.d.announce; mailOn = !!r.d.mail;
+  const mt = r.d.maint || { on: false };
+  $('mState').textContent = mt.on ? 'ON' : 'off'; $('mState').className = 'pill ' + (mt.on ? 'cu' : '');
+  if (mt.msg && mt.on) $('mMsg').value = mt.msg;
   $('aCur').textContent = ann && ann.id ? 'Live now: ' + (ann.title || ann.text.slice(0, 40)) + ' (' + ago(ann.at) + ')' : 'Nothing published.';
   $('mailState').textContent = mailOn ? 'Gmail connector: connected.' : 'Gmail connector: not connected yet.';
   $('note').textContent = r.d.pending ? r.d.pending + ' older account(s) are still being filled in: refresh in a moment.' : '';
@@ -207,6 +218,14 @@ $('rows').onclick = async e => {
   if (!r.ok) { alert(r.d.error || 'Could not delete.'); b.disabled = false; return; }
   load();
 };
+async function setMaint(on) {
+  if (!confirm(on ? 'Show UNDERGOING MAINTENANCE to all users?' : 'Tell everyone the service is back?')) return;
+  const r = await api('/admin/maintenance', { method: 'POST', body: JSON.stringify({ on, msg: $('mMsg').value }) });
+  $('mMsgOut').textContent = r.ok ? (on ? 'Maintenance is ON.' : 'Maintenance is OFF.') : (r.d.error || 'Failed.');
+  if (r.ok) load();
+}
+$('mOn').onclick = () => setMaint(true);
+$('mOff').onclick = () => setMaint(false);
 $('aSend').onclick = async () => {
   const text = $('aText').value.trim();
   if (text.length < 3) { $('aMsg').textContent = 'Write the message first.'; return; }

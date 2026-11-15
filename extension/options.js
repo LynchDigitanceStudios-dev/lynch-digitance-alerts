@@ -712,3 +712,16 @@ setInterval(load, 5000);
 
   renderReply();
 })();
+
+
+/* Studio maintenance banner (pushed from the admin page). */
+(function () {
+  const bar = document.getElementById('maintBar');
+  if (!bar) return;
+  const show = m => {
+    if (m && m.on) { bar.textContent = '🔧 UNDERGOING MAINTENANCE' + (m.msg ? ' — ' + m.msg : ''); bar.hidden = false; }
+    else bar.hidden = true;
+  };
+  chrome.storage.local.get('fvnMaint', d => show(d.fvnMaint));
+  chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.fvnMaint) show(ch.fvnMaint.newValue); });
+})();

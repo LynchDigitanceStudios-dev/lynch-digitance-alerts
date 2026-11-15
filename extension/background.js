@@ -41,6 +41,7 @@ const DEFAULTS = {
   tgChatId: '',             // Telegram chat id
   webhookUrl: '',
   accountLabels: {},        // { fiverrUsername: "friendly name" }
+  fvnMaint: null,           // { on, msg, id } pushed from the studio
   shareInstall: true,       // anonymous once-a-day install count (random id, version, channel)
   watchdog: true,           // warn when a watched account goes silent
   watchdogMins: 20,         // how long silent before warning
@@ -115,7 +116,7 @@ function format(e, c) {
   const who = label ? `${label} (${e.account})` : e.account;
 
   return [
-    'LYNCH DIGITANCE · ALERTS',
+    'LYNCH DIGITANCE · ALERTS' + (c.fvnMaint && c.fvnMaint.on ? ' · 🔧 UNDERGOING MAINTENANCE' : ''),
     `${icon} ${LOUD[e.type] ? 'Fiverr ' + LOUD[e.type] : 'Fiverr'} · ${who}`,
     `From: ${e.from}`,
     '',
@@ -403,6 +404,24 @@ chrome.alarms.create('fvn-update', { periodInMinutes: 360 });   // every 6h
  * Fiverr data, no messages, no tokens. Can be switched off in Settings.
  * Announcements: the studio can publish a short update. Each install sends it ONCE to the
  * user's own alert channel (their own Telegram bot), so it reaches everyone, account or not. */
+/* Maintenance switch from the studio: shown in the popup, tagged on every alert, and announced
+ * once on the way in and once on the way out. */
+async function applyMaint(m, c) {
+  const { fvnMaint, fvnMaintSeen } = await chrome.storage.local.get(['fvnMaint', 'fvnMaintSeen']);
+  const was = !!(fvnMaint && fvnMaint.on);
+  await chrome.storage.local.set({ fvnMaint: m.on ? { on: true, msg: m.msg || '', id: m.id } : null });
+  const key = (m.id || '') + ':' + (m.on ? 1 : 0);
+  if (key !== fvnMaintSeen && (m.on || was)) {
+    if (c.enabled) {
+      await send(m.on
+        ? ['LYNCH DIGITANCE · ALERTS', '🔧 UNDERGOING MAINTENANCE', '', m.msg || 'Alerts may be delayed.'].join('\n')
+        : ['LYNCH DIGITANCE · ALERTS', '✅ Back to normal', '', 'Maintenance is finished. Alerts are running as usual.'].join('\n'), c);
+    }
+    await chrome.storage.local.set({ fvnMaintSeen: key });
+  }
+  await refreshBadge();
+}
+
 async function fvnAnnounceAndPing() {
   try {
     const c = await cfg();
@@ -419,6 +438,7 @@ async function fvnAnnounceAndPing() {
     }
     const r2 = await fetch(ACCT_API + '/announce', { cache: 'no-store' });
     const a = r2.ok ? await r2.json() : null;
+    if (a && a.maint) await applyMaint(a.maint, c);
     if (a && a.id && a.id !== st.fvnAnnSeen && Date.now() - (a.at || 0) < 30 * 86400e3) {
       if (c.enabled) {
         await send(['LYNCH DIGITANCE · ALERTS', '📣 ' + (a.title || 'Update from the studio'), '', a.text].join('\n'), c);
@@ -927,12 +947,15 @@ async function bumpUnread(account) {
 /* One badge, two things competing for it. The unread count wins when there is
    one — it's time-sensitive — and the update flag shows only when you're clear. */
 async function refreshBadge() {
-  const { fvnUnseen = {}, fvnUpdate = {} } =
-    await chrome.storage.local.get(['fvnUnseen', 'fvnUpdate']);
+  const { fvnUnseen = {}, fvnUpdate = {}, fvnMaint = null } =
+    await chrome.storage.local.get(['fvnUnseen', 'fvnUpdate', 'fvnMaint']);
 
   const total = Object.values(fvnUnseen).reduce((a, b) => a + b, 0);
 
-  if (total > 0) {
+  if (fvnMaint && fvnMaint.on) {
+    chrome.action.setBadgeText({ text: 'FIX' });
+    chrome.action.setBadgeBackgroundColor({ color: '#c0392b' });
+  } else if (total > 0) {
     chrome.action.setBadgeText({ text: total > 99 ? '99+' : String(total) });
     chrome.action.setBadgeBackgroundColor({ color: '#D97A3D' });
   } else if (fvnUpdate.available) {
