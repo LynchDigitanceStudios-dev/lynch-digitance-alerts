@@ -374,8 +374,8 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
   <!-- ---------------- delivery ---------------- -->
   <div class="sec">
     <div class="sec-t">Delivery</div>
-    <label for="channel">Channel</label>
-    <select id="channel">
+    <label for="channel" style="display:none">Channel</label>
+    <select id="channel" style="display:none">
       <option value="telegram">Telegram bot (recommended)</option>
       <option value="callmebot">WhatsApp — CallMeBot (free, unreliable)</option>
       <option value="webhook">Custom webhook / Discord</option>
@@ -453,7 +453,7 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
   </div>
 
   <!-- ---------------- alerts ---------------- -->
-  <div class="sec">
+  <div class="sec" style="display:none">
     <div class="sec-t">Alerts</div>
     <input type="hidden" id="maxLen" value="2000">
 
@@ -487,6 +487,7 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
 
   <div class="btns save-bar">
     <button id="save" class="primary" style="flex:1">Save settings</button>
+    <button id="openAdv" class="sec-btn" title="Account names, uptime, other channels and more">Advanced ↗</button>
   </div>
 </section>
 

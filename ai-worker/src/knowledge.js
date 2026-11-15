@@ -26,7 +26,7 @@ How it watches
 - Your own replies are filtered out, so you are only pinged when someone writes to you.
 
 Account names
-- Alerts show each Fiverr account's username automatically. There is nothing to set up and no setting to change.
+- Alerts show each Fiverr account's username automatically, so there is nothing to set up. A friendlier name can be added on the Advanced page.
 
 Delivery
 - Telegram is the recommended channel. There is also CallMeBot for WhatsApp, which is a free third party whose bot number gets banned from time to time, and a custom webhook.
@@ -34,7 +34,7 @@ Delivery
 
 Other features
 - Unread counter: a gold number on the toolbar icon counting alerts since you last opened the popup, broken down per account. Opening the popup clears it.
-- Watchdog (always on): if an account stops checking in for 20 minutes you get a warning. When it is watched again you get a "BACK ONLINE" message saying how long it was away and how many unread messages are waiting on Fiverr, so nothing that arrived while the browser was closed goes unnoticed. A "Still watching" message arrives every 8 hours as a heartbeat; if those stop coming, the browser or computer is off.
+- Watchdog (on by default, adjustable on the Advanced page): if an account stops checking in for 20 minutes you get a warning. When it is watched again you get a "BACK ONLINE" message saying how long it was away and how many unread messages are waiting on Fiverr, so nothing that arrived while the browser was closed goes unnoticed. A "Still watching" message arrives every 8 hours as a heartbeat; if those stop coming, the browser or computer is off.
 - "Diagnose a problem": checks everything and offers a one-click fix for each thing it finds.
 - "Test: read my notifications now": reads what is in the notification panel without sending anything, to prove detection works.
 - Ignore notifications older than: how old a notification can be before it is treated as already seen. 60 minutes by default.
@@ -60,6 +60,9 @@ Reply from Telegram (optional, off by default)
 - Several Fiverr accounts can share one bot. Each browser profile must run the latest version, be signed in to the extension account with Reply turned on, and have that Fiverr account's tab open. You can reply to old alerts too; a late reply always asks you to confirm.
 - While it is on, "Detect chat ID" does not work.
 - If a reply does not go out, open Settings → Reply from Telegram: it says what the extension can see (signed in, Telegram set up, Fiverr tab open).
+
+Advanced settings
+- The popup's Settings tab has an "Advanced" button that opens a full page with everything that normally never needs touching: alerts on/off, desktop notification, privacy mode, other channels (WhatsApp via CallMeBot, custom webhook), how old a notification can be, friendly account names, the offline warning and "Still watching" timing, and debug mode. Changes save by themselves and every item already has a sensible default.
 
 Studio updates
 - The studio can publish a short update. Each install forwards it once to the user's own Telegram bot. New versions are announced to Telegram the same way.

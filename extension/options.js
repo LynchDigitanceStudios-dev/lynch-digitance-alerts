@@ -106,21 +106,13 @@ save.onclick = async () => {
   tgToken.value = clean(tgToken.value);
   tgChatId.value = clean(tgChatId.value);
   await chrome.storage.local.set({
-    enabled: true,
-    desktopNotif: true,
-    privacyMode: false,
-    debugMode: false,
     channel: channel.value,
     waNumber: waNumber.value.replace(/[^0-9]/g, ''),
     apiKey: apiKey.value.trim(),
     tgToken: clean(tgToken.value),
     tgChatId: clean(tgChatId.value).replace(/[^0-9-]/g, ''),
     webhookUrl: webhookUrl.value.trim(),
-    accountLabels: {},
-    watchdog: true,
     shareInstall: true,
-    watchdogMins: 20,
-    heartbeatHours: 8,
     maxLen: Math.max(100, Math.min(2000, +maxLen.value || 500)),
     maxNotifAgeMins: Math.max(5, Math.min(1440, +maxNotifAgeMins.value || 60)),
   });
@@ -745,4 +737,11 @@ setInterval(load, 5000);
   };
   chrome.storage.local.get('fvnMaint', d => show(d.fvnMaint));
   chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.fvnMaint) show(ch.fvnMaint.newValue); });
+})();
+
+
+/* "Advanced settings" opens the full-page dashboard in a new tab. */
+(function () {
+  const btn = document.getElementById('openAdv');
+  if (btn) btn.onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
 })();

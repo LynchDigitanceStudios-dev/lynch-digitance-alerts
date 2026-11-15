@@ -59,10 +59,14 @@ const FIXED = {
   watchdog: true, watchdogMins: 20, heartbeatHours: 8, shareInstall: true, accountLabels: {}
 };
 async function cfg() {
-  return { ...DEFAULTS, ...(await chrome.storage.local.get(DEFAULTS)), ...FIXED };
+  const { fvnAdv = {} } = await chrome.storage.local.get('fvnAdv');       // set on the Advanced page
+  return { ...DEFAULTS, ...(await chrome.storage.local.get(DEFAULTS)), ...FIXED, ...fvnAdv, shareInstall: true };
 }
-// Clear whatever older versions or synced accounts stored for those settings.
-chrome.runtime.onInstalled.addListener(() => chrome.storage.local.set(FIXED));
+// Clear whatever older versions or synced accounts stored for those settings, but keep Advanced choices.
+chrome.runtime.onInstalled.addListener(async () => {
+  const { fvnAdv = {} } = await chrome.storage.local.get('fvnAdv');
+  await chrome.storage.local.set({ ...FIXED, ...fvnAdv });
+});
 
 // ---------------------------------------------------------------- dedupe
 /* Kept in storage, not memory. An in-memory set died with every page load,
@@ -1030,7 +1034,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       const now = Date.now(), prev = fvnAccounts[msg.account] || 0;
       /* Coming back after a long gap with the watchdog never having noticed (browser was closed):
          remember it, and say what is waiting once the page has settled. */
-      if (prev && now - prev > FIXED.watchdogMins * 60e3 && !fvnWatchdog[msg.account] && !fvnReturn[msg.account]) {
+      if (prev && now - prev > (await cfg()).watchdogMins * 60e3 && !fvnWatchdog[msg.account] && !fvnReturn[msg.account]) {
         fvnReturn[msg.account] = { since: prev, at: now };
       }
       fvnAccounts[msg.account] = now;
