@@ -34,7 +34,7 @@ Delivery
 
 Other features
 - Unread counter: a gold number on the toolbar icon counting alerts since you last opened the popup, broken down per account. Opening the popup clears it.
-- Watchdog (always on): if an account stops checking in for 20 minutes you get a warning, and a message when it comes back. A "Still watching" message arrives every 8 hours as a heartbeat; if those stop coming, the browser or computer is off.
+- Watchdog (always on): if an account stops checking in for 20 minutes you get a warning. When it is watched again you get a "BACK ONLINE" message saying how long it was away and how many unread messages are waiting on Fiverr, so nothing that arrived while the browser was closed goes unnoticed. A "Still watching" message arrives every 8 hours as a heartbeat; if those stop coming, the browser or computer is off.
 - "Diagnose a problem": checks everything and offers a one-click fix for each thing it finds.
 - "Test: read my notifications now": reads what is in the notification panel without sending anything, to prove detection works.
 - Ignore notifications older than: how old a notification can be before it is treated as already seen. 60 minutes by default.

@@ -503,12 +503,28 @@ async function purgePhantomAccounts() {
 chrome.runtime.onInstalled.addListener(purgePhantomAccounts);
 chrome.runtime.onStartup.addListener(purgePhantomAccounts);
 
+/* What you get when an account is watched again: how long it was away and what is waiting. */
+function backOnlineText(account, awayMs, unread, wasFlagged) {
+  const mins = Math.round(awayMs / 60000);
+  const away = mins < 120 ? mins + ' min' : Math.round(mins / 60) + ' h';
+  return [
+    'LYNCH DIGITANCE · ALERTS',
+    '▶️ BACK ONLINE · ' + account,
+    '',
+    'Away for ' + away + '. ' + (unread > 0
+      ? unread + ' unread on Fiverr right now. Anything that arrived while it was off is not listed one by one.'
+      : 'Nothing unread on Fiverr right now.'),
+    '',
+    'https://www.fiverr.com/inbox'
+  ].join('\n');
+}
+
 async function runWatchdog() {
   const c = await cfg();
   if (!c.enabled) return;
 
-  const { fvnAccounts = {}, fvnWatchdog = {} } =
-    await chrome.storage.local.get(['fvnAccounts', 'fvnWatchdog']);
+  const { fvnAccounts = {}, fvnWatchdog = {}, fvnUnread = {} } =
+    await chrome.storage.local.get(['fvnAccounts', 'fvnWatchdog', 'fvnUnread']);
 
   const now = Date.now();
   const limit = Math.max(5, c.watchdogMins) * 60 * 1000;
@@ -538,15 +554,11 @@ async function runWatchdog() {
         account: user, from: 'Watchdog', type: 'alert'
       });
     } else if (!silent && fvnWatchdog[user]) {
+      const awayMs = now - fvnWatchdog[user];
       delete fvnWatchdog[user];
       changed = true;
       queue.push({
-        text: [
-          'LYNCH DIGITANCE · ALERTS',
-          `✅ WATCHER BACK ONLINE · ${label}`,
-          '',
-          'Monitoring has resumed.'
-        ].join('\n'),
+        text: backOnlineText(user, awayMs + limit, fvnUnread[user] || 0, true),
         account: user, from: 'Watchdog', type: 'alert'
       });
     }
@@ -1012,11 +1024,26 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       /* Guard the heartbeat store. A placeholder name written in here becomes a
          phantom account that the watchdog reports offline forever. */
       if (!isRealUser(msg.account)) return reply({ ok: false, reason: 'no-username-yet' });
-      const { fvnAccounts = {} } = await chrome.storage.local.get('fvnAccounts');
-      fvnAccounts[msg.account] = Date.now();
-      const { fvnTabs = {} } = await chrome.storage.local.get('fvnTabs');
+      const st = await chrome.storage.local.get(['fvnAccounts', 'fvnTabs', 'fvnWatchdog', 'fvnReturn', 'fvnUnread']);
+      const fvnAccounts = st.fvnAccounts || {}, fvnTabs = st.fvnTabs || {}, fvnWatchdog = st.fvnWatchdog || {};
+      const fvnReturn = st.fvnReturn || {}, fvnUnread = st.fvnUnread || {};
+      const now = Date.now(), prev = fvnAccounts[msg.account] || 0;
+      /* Coming back after a long gap with the watchdog never having noticed (browser was closed):
+         remember it, and say what is waiting once the page has settled. */
+      if (prev && now - prev > FIXED.watchdogMins * 60e3 && !fvnWatchdog[msg.account] && !fvnReturn[msg.account]) {
+        fvnReturn[msg.account] = { since: prev, at: now };
+      }
+      fvnAccounts[msg.account] = now;
+      fvnUnread[msg.account] = typeof msg.unread === 'number' ? msg.unread : 0;
       if (sender && sender.tab) fvnTabs[msg.account] = sender.tab.id;   // which tab watches which account
-      await chrome.storage.local.set({ fvnAccounts, fvnTabs });
+      const ret = fvnReturn[msg.account];
+      if (ret && now - ret.at >= 45000) {                               // title count has had time to load
+        delete fvnReturn[msg.account];
+        queue.push({ text: backOnlineText(msg.account, now - ret.since, fvnUnread[msg.account], false),
+                     account: msg.account, from: 'Watchdog', type: 'alert', noBadge: true });
+        drain();
+      }
+      await chrome.storage.local.set({ fvnAccounts, fvnTabs, fvnReturn, fvnUnread });
       return reply({ ok: true });
     }
 

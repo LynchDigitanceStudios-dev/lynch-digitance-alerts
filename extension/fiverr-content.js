@@ -926,7 +926,7 @@
   const ping = () => {
     refreshAccount();
     if (!account) return;
-    chrome.runtime.sendMessage({ kind: 'fvn-alive', account }).catch(() => {});
+    chrome.runtime.sendMessage({ kind: 'fvn-alive', account, unread: unreadCount(document.title) }).catch(() => {});
   };
   ping();
   setInterval(ping, 60000);
