@@ -700,6 +700,11 @@ async function adminAnnounce(request, env) {
   if (b.clear) { await env.ACCOUNTS.delete('announce:latest'); return ajson({ ok: true }); }
   if (text.length < 3) return ajson({ error: 'Write the message first.' }, 400);
   const a = { id: rid(10), title, text, at: Date.now() };
+  const mv = String(b.minVersion || '').trim();
+  if (mv) {
+    if (!/^\d+(\.\d+){1,3}$/.test(mv)) return ajson({ error: 'Version looks like 1.15.1' }, 400);
+    a.minVersion = mv;            // each extension compares this with ITS OWN version; nothing about the user is stored
+  }
   await env.ACCOUNTS.put('announce:latest', JSON.stringify(a));
   return ajson({ ok: true, announce: a });
 }

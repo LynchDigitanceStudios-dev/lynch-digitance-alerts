@@ -106,6 +106,7 @@ textarea:focus,input[type=text]:focus{border-color:var(--gold)}
     <p><b>To everyone's Telegram.</b> Every extension picks this up within about 15 minutes (the browser must be open) and sends it to its own Telegram bot, once. It reaches people without an account too, but only on version 1.15.0 or newer.</p>
     <input type="text" id="aTitle" placeholder="Title (optional)" maxlength="100">
     <textarea id="aText" placeholder="What do you want your users to know?" maxlength="1500"></textarea>
+    <div class="row2" style="margin-bottom:8px"><input type="text" id="aMin" placeholder="Only installs older than… e.g. 1.15.1 (empty = everyone)" maxlength="12" style="max-width:340px;margin:0"><span class="note" id="aMinNote" style="margin:0"></span></div>
     <div class="row2"><button class="btn" id="aSend">Publish to Telegram</button><button class="ghost" id="aClear">Clear current</button><span class="note" id="aCur" style="margin:0"></span></div>
     <div class="msg" id="aMsg"></div>
     <h2 style="margin-top:18px">Email account holders</h2>
@@ -175,7 +176,8 @@ async function load() {
   const mt = r.d.maint || { on: false };
   $('mState').textContent = mt.on ? 'ON' : 'off'; $('mState').className = 'pill ' + (mt.on ? 'cu' : '');
   if (mt.msg && mt.on) $('mMsg').value = mt.msg;
-  $('aCur').textContent = ann && ann.id ? 'Live now: ' + (ann.title || ann.text.slice(0, 40)) + ' (' + ago(ann.at) + ')' : 'Nothing published.';
+  $('aCur').textContent = ann && ann.id ? 'Live now: ' + (ann.title || ann.text.slice(0, 40)) + (ann.minVersion ? ' [only older than ' + ann.minVersion + ']' : '') + ' (' + ago(ann.at) + ')' : 'Nothing published.';
+  updCount();
   $('mailState').textContent = mailOn ? 'Gmail connector: connected.' : 'Gmail connector: not connected yet.';
   $('note').textContent = r.d.pending ? r.d.pending + ' older account(s) are still being filled in: refresh in a moment.' : '';
   draw();
@@ -226,13 +228,22 @@ async function setMaint(on) {
 }
 $('mOn').onclick = () => setMaint(true);
 $('mOff').onclick = () => setMaint(false);
+function vnum(v) { return String(v || '').split('.').map(n => parseInt(n, 10) || 0); }
+function older(a, b) { const x = vnum(a), y = vnum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); } return false; }
+function updCount() {
+  const m = $('aMin').value.trim();
+  if (!m) { $('aMinNote').textContent = 'Empty means everyone gets it.'; return; }
+  const n = users.filter(u => !u.ver || older(u.ver, m)).length;
+  $('aMinNote').textContent = 'Known to be older: ' + n + ' of ' + users.length + ' (installs that never reported a version count too).';
+}
+$('aMin').oninput = updCount;
 $('aSend').onclick = async () => {
   const text = $('aText').value.trim();
   if (text.length < 3) { $('aMsg').textContent = 'Write the message first.'; return; }
   if (!confirm('Publish this to every user\'s Telegram?')) return;
-  const r = await api('/admin/announce', { method: 'POST', body: JSON.stringify({ title: $('aTitle').value, text }) });
+  const r = await api('/admin/announce', { method: 'POST', body: JSON.stringify({ title: $('aTitle').value, text, minVersion: $('aMin').value.trim() }) });
   $('aMsg').textContent = r.ok ? 'Published. Extensions pick it up within about 15 minutes.' : (r.d.error || 'Failed.');
-  if (r.ok) { $('aText').value = ''; $('aTitle').value = ''; load(); }
+  if (r.ok) { $('aText').value = ''; $('aTitle').value = ''; $('aMin').value = ''; load(); }
 };
 $('aClear').onclick = async () => {
   const r = await api('/admin/announce', { method: 'POST', body: JSON.stringify({ clear: true }) });

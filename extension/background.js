@@ -450,7 +450,9 @@ async function fvnAnnounceAndPing() {
     const r2 = await fetch(ACCT_API + '/announce', { cache: 'no-store' });
     const a = r2.ok ? await r2.json() : null;
     if (a && a.maint) await applyMaint(a.maint, c);
-    if (a && a.id && a.id !== st.fvnAnnSeen && Date.now() - (a.at || 0) < 30 * 86400e3) {
+    // "Only installs older than X": an extension already at that version (or newer) ignores it.
+    const eligible = !a || !a.minVersion || newerThan(a.minVersion, chrome.runtime.getManifest().version);
+    if (a && a.id && eligible && a.id !== st.fvnAnnSeen && Date.now() - (a.at || 0) < 30 * 86400e3) {
       if (c.enabled) {
         await send(['LYNCH DIGITANCE · ALERTS', '📣 ' + (a.title || 'Update from the studio'), '', a.text].join('\n'), c);
       }
