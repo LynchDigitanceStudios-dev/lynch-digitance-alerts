@@ -846,6 +846,7 @@ async function runReply(id, c) {
 }
 
 async function handleRelayItem(account, item, c, rc) {
+  bumpReplyBurst();
   if (item.t === 'reply') {
     const ageMin = (Date.now() - item.at) / 60000;
     const ask = rc.replyConfirm || ageMin > 5;          // a late reply ALWAYS asks first
@@ -938,14 +939,21 @@ async function replyPollOnce() {
 }
 
 /* An alarm can only fire every 30 seconds, so each one checks three times, 10 s apart. */
+/* Replies come right after an alert, so: check every 10 s for 3 minutes after any alert or reply
+ * activity, and only once a minute the rest of the time. (Saves the server almost all of its reads.) */
+const bumpReplyBurst = () => chrome.storage.local.set({ replyBurstUntil: Date.now() + 3 * 60e3 });
 async function replyTick() {
   if (replyBusy) return;
   replyBusy = true;
   replyTickN++;
   try {
-    for (let i = 0; i < 3; i++) {
+    const { replyBurstUntil = 0 } = await chrome.storage.local.get('replyBurstUntil');
+    const fast = Date.now() < replyBurstUntil;
+    if (!fast && replyTickN % 2) return;
+    const polls = fast ? 3 : 1;
+    for (let i = 0; i < polls; i++) {
       await replyPollOnce();
-      if (i < 2) await sleepMs(10000);
+      if (i < polls - 1) await sleepMs(10000);
     }
   } catch (e) { /* try again next alarm */ } finally { replyBusy = false; }
 }
@@ -1088,6 +1096,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 
       const rcx = await replyCfg();
       const kb = (rcx.replyEnabled && e.type === 'message' && e.from && !c.privacyMode) ? REPLY_BTN : undefined;
+      if (kb) bumpReplyBurst();
       queue.push({ text: format(e, c), account: e.account, from: e.from, type: e.type, kb });
       drain();
       return reply({ ok: true, queued: queue.length });

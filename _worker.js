@@ -211,8 +211,13 @@ const json = (obj, status = 200) =>
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS }
   });
 
-export default {
+const handlers = {
   async fetch(request, env) {
+    try { return await handlers.route(request, env); }
+    catch (e) { return failSoft(request, e); }
+  },
+
+  async route(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname === '/ai') {
@@ -268,6 +273,7 @@ export default {
     return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found', { status: 404 });
   }
 };
+export default handlers;
 
 /* Uninstall feedback from goodbye.html.
  *
@@ -320,6 +326,17 @@ const CORS_ACCT = {
   'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Ext-Version'
 };
+/* If a lookup fails (for example Cloudflare's free daily KV allowance is used up), say so plainly. */
+function failSoft(request, e) {
+  const p = new URL(request.url).pathname;
+  console.error('worker error', String(e).slice(0, 200));
+  if (p.startsWith('/tg/')) return new Response('busy', { status: 503 });          // Telegram retries by itself
+  if (/^\/(account|relay|admin|ping|announce)/.test(p)) {
+    return ajson({ error: 'The service is very busy right now. Please try again in a little while.', busy: true }, 503);
+  }
+  return new Response('Service temporarily unavailable', { status: 503 });
+}
+
 const ajson = (o, s = 200) =>
   new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS_ACCT } });
 const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -371,7 +388,7 @@ async function handleAccount(request, env, path) {
 
   // Everything else needs a session.
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/, '');
-  const email = token && await env.ACCOUNTS.get('sess:' + token);
+  const email = token && await sessEmail(token, env);
   if (!email) return ajson({ error: 'Signed out — please sign in again.' }, 401);
   const rec = await env.ACCOUNTS.get('user:' + email, 'json');
   if (!rec) return ajson({ error: 'Account not found.' }, 404);
@@ -390,6 +407,7 @@ async function handleAccount(request, env, path) {
     return ajson({ ok: true, updated: rec.updated });
   }
   if (path === '/account/logout' && request.method === 'POST') {
+    SESS_CACHE.delete(token);
     await env.ACCOUNTS.delete('sess:' + token);
     return ajson({ ok: true });
   }
@@ -421,9 +439,20 @@ const rid = len => {
 };
 const bearer = request => (request.headers.get('Authorization') || '').replace(/^Bearer\s+/, '');
 
+const SESS_CACHE = new Map();      // token -> { email, exp }
+async function sessEmail(token, env) {
+  if (!token) return null;
+  const hit = SESS_CACHE.get(token);
+  if (hit && hit.exp > Date.now()) return hit.email;
+  const email = await env.ACCOUNTS.get('sess:' + token);
+  if (email) {
+    if (SESS_CACHE.size > 400) SESS_CACHE.clear();
+    SESS_CACHE.set(token, { email, exp: Date.now() + 10 * 60e3 });
+  }
+  return email;
+}
 async function sessionEmail(request, env) {
-  const t = bearer(request);
-  return t ? env.ACCOUNTS.get('sess:' + t) : null;
+  return sessEmail(bearer(request), env);
 }
 
 /* Reads "which account, which buyer" out of one of OUR alerts:
@@ -461,8 +490,10 @@ async function touchUser(env, email, rec, ver) {
   }
 }
 
+const MB_EMPTY = new Map();       // mailbox key -> time until which it is known to be empty
 async function queueCmd(env, email, account, item) {
   const key = 'mb:' + email + ':' + account;
+  MB_EMPTY.delete(key);
   const list = (await env.ACCOUNTS.get(key, 'json')) || [];
   list.push(item);
   await env.ACCOUNTS.put(key, JSON.stringify(list.slice(-50)), { expirationTtl: 3 * 86400 });
@@ -501,8 +532,13 @@ async function relayPoll(request, env, url) {
   if (!USERNAME_RE.test(account)) return ajson({ error: 'Bad account' }, 400);
   const ack = new Set((url.searchParams.get('ack') || '').split(',').filter(Boolean));
   const key = 'mb:' + email + ':' + account;
+  if (!ack.size) { const until = MB_EMPTY.get(key); if (until && until > Date.now()) return ajson({ items: [] }); }
   let list = await env.ACCOUNTS.get(key, 'json');
-  if (!list) return ajson({ items: [] });
+  if (!list) {
+    if (MB_EMPTY.size > 400) MB_EMPTY.clear();
+    MB_EMPTY.set(key, Date.now() + 20000);
+    return ajson({ items: [] });
+  }
   if (ack.size) {
     const rest = list.filter(i => !ack.has(i.id));
     if (rest.length !== list.length) {
@@ -676,20 +712,25 @@ async function handlePing(request, env) {
 
 /* ---- announcements: you write one in the admin page; every extension picks it up on its next check
  *      and sends it to its OWN Telegram bot (so it reaches people without an account too). ---- */
+let ANN_CACHE = null;           // { exp, body }
 async function handleAnnounce(env, request) {
-  let st = null;
-  try { st = await env.ASSETS.fetch(new Request(new URL('/status.json', request.url))); } catch (e) { st = null; }
+  if (ANN_CACHE && ANN_CACHE.exp > Date.now()) return ajson(ANN_CACHE.body);
   let fixed = null;
-  try { if (st && st.ok) fixed = await st.json(); } catch (e) { fixed = null; }
-  // A switched-on maintenance in status.json always wins: it does not depend on KV being reachable.
-  if (fixed && fixed.maint && fixed.maint.on) return ajson(fixed);
   try {
-    const a = await env.ACCOUNTS.get('announce:latest', 'json');
-    const maint = await env.ACCOUNTS.get('maint:state', 'json');
-    return ajson({ ...(a || {}), maint: maint || { on: false } });
-  } catch (e) {
-    return ajson(fixed || { maint: { on: false } });
-  }
+    const st = await env.ASSETS.fetch(new Request(new URL('/status.json', request.url)));
+    if (st && st.ok) fixed = await st.json();
+  } catch (e) { fixed = null; }
+  let a = null, kvMaint = null, kvOk = true;
+  try {
+    a = await env.ACCOUNTS.get('announce:latest', 'json');
+    kvMaint = await env.ACCOUNTS.get('maint:state', 'json');
+  } catch (e) { kvOk = false; }
+  const sm = fixed && fixed.maint;
+  let maint = kvMaint || { on: false };
+  if (sm && (!kvMaint || (sm.at || 0) > (kvMaint.at || 0))) maint = sm;      // the newest state wins
+  const body = { ...(a || {}), maint };
+  ANN_CACHE = { exp: Date.now() + (kvOk ? 120000 : 30000), body };
+  return ajson(body);
 }
 /* Maintenance switch: every install (and the website) shows "UNDERGOING MAINTENANCE" while it is on. */
 async function adminMaintenance(request, env) {
@@ -700,6 +741,7 @@ async function adminMaintenance(request, env) {
   const msg = String(b.msg || '').trim().slice(0, 400) || 'The service is undergoing maintenance. Alerts may be delayed. You will be told when it is back.';
   const st = { on, msg, id: (prev && prev.on === on && prev.id) ? prev.id : rid(8), at: Date.now() };
   await env.ACCOUNTS.put('maint:state', JSON.stringify(st));
+  ANN_CACHE = null;
   return ajson({ ok: true, maint: st });
 }
 async function adminAnnounce(request, env) {
@@ -707,7 +749,7 @@ async function adminAnnounce(request, env) {
   let b = {}; try { b = await request.json(); } catch { return ajson({ error: 'Bad request' }, 400); }
   const text = String(b.text || '').trim().slice(0, 1500);
   const title = String(b.title || '').trim().slice(0, 100);
-  if (b.clear) { await env.ACCOUNTS.delete('announce:latest'); return ajson({ ok: true }); }
+  if (b.clear) { await env.ACCOUNTS.delete('announce:latest'); ANN_CACHE = null; return ajson({ ok: true }); }
   if (text.length < 3) return ajson({ error: 'Write the message first.' }, 400);
   const a = { id: rid(10), title, text, at: Date.now() };
   const mv = String(b.minVersion || '').trim();
@@ -716,6 +758,7 @@ async function adminAnnounce(request, env) {
     a.minVersion = mv;            // each extension compares this with ITS OWN version; nothing about the user is stored
   }
   await env.ACCOUNTS.put('announce:latest', JSON.stringify(a));
+  ANN_CACHE = null;
   return ajson({ ok: true, announce: a });
 }
 
