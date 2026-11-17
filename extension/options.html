@@ -242,15 +242,22 @@ label{margin:16px 0 7px}
 #acctModal[hidden]{display:none!important}
 .save-bar{position:sticky;bottom:0;background:var(--ink);padding:12px 0 2px;margin-top:4px}
 </style>
+<link rel="stylesheet" href="review.css">
 </head>
 <body>
 <div id="maintScreen" hidden>
   <div class="mt-box">
     <img src="icon128.png" alt="" width="64" height="64">
     <div class="mt-tag">LYNCH DIGITANCE · ALERTS</div>
-    <h1>🔧 UNDERGOING MAINTENANCE</h1>
+    <h1 id="maintTitle">🔧 UNDERGOING MAINTENANCE</h1>
     <p id="maintMsg">We are working on the extension. Alerts may be delayed for a while.</p>
-    <p class="mt-sub">We will message you on Telegram as soon as it is back to normal.</p>
+    <ol class="mt-steps" id="maintSteps" hidden>
+      <li>Press Download below.</li>
+      <li>Unzip it over your existing extension folder, replacing the files.</li>
+      <li>Open chrome://extensions and press Reload on this extension. Your settings are kept.</li>
+    </ol>
+    <a class="mt-btn" id="maintDl" hidden target="_blank" rel="noopener" href="https://alerts.lynchdigitancestudios.workers.dev/lynch-digitance-alerts.zip">Download the update</a>
+    <p class="mt-sub" id="maintSub">We will message you on Telegram as soon as it is back to normal.</p>
   </div>
 </div>
 <style>
@@ -276,6 +283,7 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
 <nav class="tabs">
   <button class="tab on" data-tab="home">Home</button>
   <button class="tab" data-tab="settings">Settings</button>
+  <button class="tab" data-tab="reviews">Reviews</button>
   <button class="tab" data-tab="help">Help</button>
 </nav>
 
@@ -491,6 +499,21 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
   </div>
 </section>
 
+<section class="pane" data-pane="reviews" id="paneReviews" hidden>
+  <div class="rvhead">
+    <div class="rvhead__row">
+      <div class="rvhead__avg" id="rvAvg">–</div>
+      <div>
+        <div class="rvstars" id="rvAvgStars" aria-hidden="true"></div>
+        <div class="rvhead__n" id="rvCount">Loading…</div>
+      </div>
+    </div>
+    <button class="primary rvblock" id="rvWrite" type="button">Write a review</button>
+  </div>
+  <div id="rvList"></div>
+  <div class="rvmsg" id="rvMsg" hidden></div>
+</section>
+
 <section class="pane" data-pane="help" hidden>
   <div class="sec">
     <div class="sec-t">Fix a problem</div>
@@ -542,6 +565,50 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
   </div>
 </div>
 
+<!-- ================= REVIEW WINDOW + "what's new" note (opens by itself when it is time, or from the Reviews tab) ================= -->
+<div class="rvmodal" id="rvModal" hidden role="dialog" aria-modal="true" aria-labelledby="rvTitle">
+  <div class="rvmodal__box" id="rvBox" tabindex="-1">
+   <div id="rvForm">
+    <div class="rvnote" id="rvNote" hidden>
+      <b id="rvNoteTitle">What’s new</b>
+      <ul id="rvNoteList"></ul>
+    </div>
+    <button class="primary rvblock rvgot" id="rvGotBtn" type="button" hidden>Got it</button>
+    <hr class="rvdiv" id="rvDiv" hidden>
+    <div id="rvFormBody">
+    <div class="rvmodal__title" id="rvTitle">How is Lynch Digitance Alerts working for you?</div>
+    <div class="rvmodal__sub" id="rvSub">Your review helps other people decide, and helps us make it better.</div>
+    <div class="rvpick" id="rvPick" role="radiogroup" aria-label="Your rating">
+      <button type="button" role="radio" aria-checked="false" data-v="1" aria-label="1 star">★</button>
+      <button type="button" role="radio" aria-checked="false" data-v="2" aria-label="2 stars">★</button>
+      <button type="button" role="radio" aria-checked="false" data-v="3" aria-label="3 stars">★</button>
+      <button type="button" role="radio" aria-checked="false" data-v="4" aria-label="4 stars">★</button>
+      <button type="button" role="radio" aria-checked="false" data-v="5" aria-label="5 stars">★</button>
+    </div>
+    <div class="rvpick__label" id="rvPickLabel">Tap a star</div>
+    <textarea id="rvText" maxlength="500" rows="4" placeholder="Anything you'd like to add? (optional)"></textarea>
+    <div class="rvmodal__count"><span id="rvLen">0</span>/500</div>
+    <div class="rvmodal__fine" id="rvFine"></div>
+    <div class="rvmsg" id="rvErr" hidden></div>
+    <button class="primary rvblock" id="rvSubmit" type="button" disabled>Send review</button>
+    <div class="rvmodal__links" id="rvLinks">
+      <button class="linkbtn" id="rvLater" type="button">Maybe later</button>
+      <button class="linkbtn" id="rvNever" type="button">Don't ask again</button>
+    </div>
+    <div class="rvmodal__links" id="rvCancelRow" hidden>
+      <button class="linkbtn" id="rvCancel" type="button">Cancel</button>
+    </div>
+    </div>
+   </div>
+   <div class="rvthanks" id="rvThanks" hidden>
+     <b>Thank you!</b>
+     <p id="rvThanksText"></p>
+     <button class="primary rvblock" id="rvThanksBtn" type="button">Done</button>
+   </div>
+  </div>
+</div>
+
 <script src="options.js"></script>
+<script src="review-ui.js"></script>
 </body>
 </html>

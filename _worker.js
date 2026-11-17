@@ -255,7 +255,15 @@ const handlers = {
       if (url.pathname === '/admin/announce' && request.method === 'POST') return adminAnnounce(request, env);
       if (url.pathname === '/admin/email' && request.method === 'POST') return adminEmail(request, env);
       if (url.pathname === '/admin/maintenance' && request.method === 'POST') return adminMaintenance(request, env);
+      if (url.pathname === '/admin/reviews' && request.method === 'GET') return adminReviews(request, env);
+      if (url.pathname === '/admin/reviews/hide' && request.method === 'POST') return adminReviewHide(request, env);
       return ajson({ error: 'Not found' }, 404);
+    }
+
+    if (url.pathname === '/reviews' || url.pathname === '/reviews/mine') {
+      if (request.method === 'OPTIONS') return new Response(null, { headers: CORS_ACCT });
+      if (!env.DB) return ajson({ error: 'Reviews are not set up yet.' }, 503);
+      return handleReviews(request, env, url);
     }
 
     if (url.pathname.startsWith('/account/')) {
@@ -691,6 +699,7 @@ async function adminDelete(request, env) {
   const mb = await env.ACCOUNTS.list({ prefix: 'mb:' + email + ':', limit: 100 });
   for (const k of mb.keys) await env.ACCOUNTS.delete(k.name);
   await env.ACCOUNTS.delete('user:' + email);
+  if (env.DB) { try { await env.DB.prepare('DELETE FROM reviews WHERE email = ?').bind(email).run(); RV_CACHE.clear(); } catch (e) { /* review table is optional */ } }
   return ajson({ ok: true });
 }
 
@@ -740,6 +749,12 @@ async function adminMaintenance(request, env) {
   const on = !!b.on;
   const msg = String(b.msg || '').trim().slice(0, 400) || 'The service is undergoing maintenance. Alerts may be delayed. You will be told when it is back.';
   const st = { on, msg, id: (prev && prev.on === on && prev.id) ? prev.id : rid(8), at: Date.now() };
+  const mv = String(b.minVersion || '').trim();
+  if (mv) {
+    if (!/^\d+(\.\d+){1,3}$/.test(mv)) return ajson({ error: 'Version looks like 1.15.2' }, 400);
+    st.minVersion = mv;                        // builds at or above this version ignore the notice
+  }
+  if (b.kind === 'update') { st.kind = 'update'; if (b.block) st.block = true; }
   await env.ACCOUNTS.put('maint:state', JSON.stringify(st));
   ANN_CACHE = null;
   return ajson({ ok: true, maint: st });
@@ -792,6 +807,153 @@ async function adminEmail(request, env) {
     } catch { failed += list.slice(i, i + 40).length; }
   }
   return ajson({ ok: failed === 0, sent, failed, total: list.length });
+}
+
+/* ---------------------------------------------------------------- reviews (D1)
+ * The only identity shown with a review is a short name made from the account email ("Ethan C."),
+ * never the address itself. Someone without an account posts as "Alerts user". Hiding a review is
+ * silent: it disappears for everyone but its author. */
+const ANON_NAME = 'Alerts user';
+const RV_CACHE = new Map();               // limit -> { at, body }   (a flood of page views must not become a flood of reads)
+class RvErr extends Error { constructor(m, s) { super(m); this.status = s; } }
+
+function reviewName(email) {
+  if (!email) return ANON_NAME;
+  const local = String(email).split('@')[0].split('+')[0];
+  const parts = local.split(/[._-]+/).map(p => p.replace(/[^a-z]/gi, '')).filter(Boolean);
+  if (!parts.length) return ANON_NAME;
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  const first = cap(parts[0].slice(0, 14)) + (parts[0].length > 14 ? '…' : '');
+  return parts[1] ? first + ' ' + parts[1].charAt(0).toUpperCase() + '.' : first;
+}
+function cleanReviewText(v) {
+  if (v === undefined || v === null) return '';
+  if (typeof v !== 'string') throw new RvErr("Your review couldn't be saved.", 400);
+  const t = v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  if (t.length > 500) throw new RvErr('Please keep your review under 500 characters.', 400);
+  if (/(https?:\/\/|www\.)/i.test(t)) throw new RvErr('Please leave links out of your review.', 400);
+  return t;
+}
+async function hmacHex(secret, msg) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(secret || 'x')), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(sig), b => b.toString(16).padStart(2, '0')).join('');
+}
+const rvJson = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_ACCT, ...extra } });
+const INSTALL_RE = /^[a-z0-9]{16,64}$/;
+
+async function handleReviews(request, env, url) {
+  try {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+    /* public list: the extension's Reviews tab and the website */
+    if (url.pathname === '/reviews' && request.method === 'GET') {
+      const want = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit'), 10) || 30));
+      const hit = RV_CACHE.get(want);
+      let body;
+      if (hit && Date.now() - hit.at < 15000) body = hit.body;
+      else {
+        const agg = await env.DB.prepare('SELECT COUNT(*) AS n, AVG(rating) AS avg FROM reviews WHERE hidden = 0').first();
+        const rows = (await env.DB.prepare('SELECT id, name, rating, body, created_at FROM reviews WHERE hidden = 0 ORDER BY created_at DESC, id DESC LIMIT ?').bind(want).all()).results || [];
+        body = JSON.stringify({
+          count: agg.n || 0,
+          average: agg.n ? Math.round(agg.avg * 10) / 10 : 0,
+          reviews: rows.map(r => ({ id: r.id, name: r.name, rating: r.rating, text: r.body, at: r.created_at }))
+        });
+        RV_CACHE.set(want, { at: Date.now(), body });
+      }
+      return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=30', ...CORS_ACCT } });
+    }
+
+    if (env.REVIEW_LIMITER) {
+      const { success } = await env.REVIEW_LIMITER.limit({ key: 'rv:' + ip });
+      if (!success) throw new RvErr('Slow down. Try again in a minute.', 429);
+    }
+    // signing in is optional; if the session cannot be checked right now the review is simply sent without an account
+    let email = null;
+    if (/^Bearer /.test(request.headers.get('Authorization') || '')) { try { email = await sessionEmail(request, env); } catch (e) { email = null; } }
+
+    /* what this account / install has already written */
+    if (url.pathname === '/reviews/mine' && request.method === 'GET') {
+      const inst = url.searchParams.get('install') || '';
+      let row = null;
+      if (email) row = await env.DB.prepare('SELECT id, name, rating, body FROM reviews WHERE email = ?').bind(email).first();
+      if (!row && INSTALL_RE.test(inst)) row = await env.DB.prepare('SELECT id, name, rating, body FROM reviews WHERE install_id = ?').bind(inst).first();
+      // a review the owner hid is still shown to its author as theirs
+      return rvJson({ review: row ? { id: row.id, name: row.name, rating: row.rating, text: row.body } : null });
+    }
+
+    /* write or edit one */
+    if (url.pathname === '/reviews' && request.method === 'POST') {
+      let b = {}; try { b = await request.json(); } catch { throw new RvErr('Bad request', 400); }
+      const rating = Number.isInteger(b.rating) && b.rating >= 1 && b.rating <= 5 ? b.rating : null;
+      if (rating === null) throw new RvErr('Choose 1 to 5 stars.', 400);
+      const text = cleanReviewText(b.text);
+      const install = typeof b.install === 'string' && INSTALL_RE.test(b.install) ? b.install : null;
+      const version = typeof b.v === 'string' && /^\d{1,3}(\.\d{1,3}){1,3}$/.test(b.v) ? b.v : null;
+      if (!email && !install) throw new RvErr("Your review couldn't be saved.", 400);
+
+      const now = Date.now(), DAY = 86400000;
+      const ipHash = (await hmacHex(env.PEPPER, 'review-ip:' + ip)).slice(0, 24);
+      let row = null;
+      if (email) row = await env.DB.prepare('SELECT id, name FROM reviews WHERE email = ?').bind(email).first();
+      let installFree = !!install;
+      if (!row && install) {
+        const byInstall = await env.DB.prepare('SELECT id, email, name FROM reviews WHERE install_id = ?').bind(install).first();
+        // a signed-out edit, or the account signing in on this install, continues that review; another account's stays theirs
+        if (byInstall && (!byInstall.email || !email || byInstall.email === email)) row = byInstall;
+        else if (byInstall) installFree = false;
+      }
+      try {
+        if (row) {
+          if (email) {
+            await env.DB.prepare('UPDATE reviews SET rating = ?, body = ?, version = COALESCE(?, version), updated_at = ?, email = ?, name = ?, install_id = COALESCE(install_id, ?) WHERE id = ?')
+              .bind(rating, text, version, now, email, reviewName(email), installFree ? install : null, row.id).run();
+          } else {
+            await env.DB.prepare('UPDATE reviews SET rating = ?, body = ?, version = COALESCE(?, version), updated_at = ? WHERE id = ?').bind(rating, text, version, now, row.id).run();
+          }
+        } else {
+          const recent = (await env.DB.prepare('SELECT COUNT(*) AS n FROM reviews WHERE ip_hash = ? AND created_at > ?').bind(ipHash, now - DAY).first()).n;
+          if (recent >= 3) throw new RvErr("That's enough reviews from this connection for today.", 429);
+          await env.DB.prepare('INSERT INTO reviews (email, install_id, name, rating, body, version, created_at, updated_at, hidden, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)')
+            .bind(email || null, installFree ? install : null, reviewName(email), rating, text, version, now, now, ipHash).run();
+        }
+      } catch (e) {
+        if (e instanceof RvErr) throw e;
+        throw new RvErr('Your review is already saved.', 409);
+      }
+      RV_CACHE.clear();
+      return rvJson({ ok: true, name: email ? reviewName(email) : row ? row.name : ANON_NAME, created: !row }, row ? 200 : 201);
+    }
+    return rvJson({ error: 'Not found' }, 404);
+  } catch (e) {
+    if (e instanceof RvErr) return rvJson({ error: e.message }, e.status);
+    throw e;
+  }
+}
+
+/* owner only: every review, hidden ones included, with the real email */
+async function adminReviews(request, env) {
+  if (!(await adminAuth(request, env))) return ajson({ error: 'Signed out.' }, 401);
+  if (!env.DB) return ajson({ error: 'Reviews are not set up yet.' }, 503);
+  const rows = (await env.DB.prepare('SELECT id, name, email, rating, body, version, created_at AS created, updated_at AS updated, hidden FROM reviews ORDER BY created_at DESC, id DESC LIMIT 1000').all()).results || [];
+  const shown = rows.filter(r => !r.hidden);
+  return ajson({
+    stats: { total: rows.length, visible: shown.length, hidden: rows.length - shown.length,
+             average: shown.length ? Math.round((shown.reduce((n, r) => n + r.rating, 0) / shown.length) * 10) / 10 : 0 },
+    reviews: rows.map(r => ({ id: r.id, name: r.name, email: r.email || null, rating: r.rating, text: r.body, version: r.version || null, created: r.created, updated: r.updated, hidden: !!r.hidden }))
+  });
+}
+async function adminReviewHide(request, env) {
+  if (!(await adminAuth(request, env))) return ajson({ error: 'Signed out.' }, 401);
+  if (!env.DB) return ajson({ error: 'Reviews are not set up yet.' }, 503);
+  let b = {}; try { b = await request.json(); } catch { return ajson({ error: 'Bad request' }, 400); }
+  const id = parseInt(b.id, 10);
+  if (!Number.isInteger(id) || id < 1 || typeof b.hidden !== 'boolean') return ajson({ error: 'Bad request' }, 400);
+  const res = await env.DB.prepare('UPDATE reviews SET hidden = ? WHERE id = ?').bind(b.hidden ? 1 : 0, id).run();
+  if (!res.meta.changes) return ajson({ error: 'No such review.' }, 404);
+  RV_CACHE.clear();
+  return ajson({ ok: true, hidden: b.hidden });
 }
 
 async function handleAI(request, env) {

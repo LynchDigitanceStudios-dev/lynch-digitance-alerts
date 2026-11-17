@@ -26,3 +26,17 @@ namespace_id = "1004"
   [ratelimits.simple]
   limit = 5
   period = 60
+
+# Reviews live in D1 (not KV): D1 allows millions of reads a day on the free plan.
+[[d1_databases]]
+binding = "DB"
+database_name = "alerts-reviews"
+database_id = "7779db4c-f3f6-4136-8bae-909bbd671f5e"
+
+# Brake on review spam: 8 requests a minute per visitor.
+[[ratelimits]]
+name = "REVIEW_LIMITER"
+namespace_id = "1005"
+  [ratelimits.simple]
+  limit = 8
+  period = 60

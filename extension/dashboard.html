@@ -59,9 +59,11 @@ body.maint .layout,body.maint #toast{display:none!important}
 <div id="maintScreen" hidden>
   <div class="mt">
     <img src="icon128.png" alt="" width="64" height="64">
-    <h1>🔧 UNDERGOING MAINTENANCE</h1>
+    <h1 id="maintTitle">🔧 UNDERGOING MAINTENANCE</h1>
     <p id="maintMsg">We are working on the extension. Alerts may be delayed for a while.</p>
-    <p style="color:var(--muted);font-size:13px">We will message you on Telegram as soon as it is back to normal.</p>
+    <ol id="maintSteps" hidden style="text-align:left;font-size:13px;color:#cbd6e6;padding-left:18px"><li>Press Download below.</li><li>Unzip it over your existing extension folder, replacing the files.</li><li>Open chrome://extensions and press Reload. Your settings are kept.</li></ol>
+    <a id="maintDl" hidden target="_blank" rel="noopener" href="https://alerts.lynchdigitancestudios.workers.dev/lynch-digitance-alerts.zip" style="display:inline-block;margin:6px 0 12px;padding:11px 20px;border-radius:10px;background:linear-gradient(135deg,#F2B583,#D97A3D);color:#1a1200;font-weight:800;text-decoration:none">Download the update</a>
+    <p id="maintSub" style="color:var(--muted);font-size:13px">We will message you on Telegram as soon as it is back to normal.</p>
   </div>
 </div>
 

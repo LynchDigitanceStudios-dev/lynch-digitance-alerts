@@ -734,6 +734,11 @@ setInterval(load, 5000);
     document.body.classList.toggle('maint', on);
     scr.hidden = !on;
     if (on && m.msg) document.getElementById('maintMsg').textContent = m.msg;
+    const upd = on && m.kind === 'update';                         // "update required" instead of "maintenance"
+    document.getElementById('maintTitle').textContent = upd ? '⬆️ UPDATE REQUIRED' : '🔧 UNDERGOING MAINTENANCE';
+    document.getElementById('maintSteps').hidden = !upd;
+    document.getElementById('maintDl').hidden = !upd;
+    document.getElementById('maintSub').hidden = upd;
   };
   chrome.storage.local.get('fvnMaint', d => show(d.fvnMaint));
   chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.fvnMaint) show(ch.fvnMaint.newValue); });

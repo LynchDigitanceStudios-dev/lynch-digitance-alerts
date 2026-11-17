@@ -97,6 +97,11 @@ textarea:focus,input[type=text]:focus{border-color:var(--gold)}
     <h2>Maintenance mode <span class="pill" id="mState">off</span></h2>
     <p>While it is on, every extension shows <b>UNDERGOING MAINTENANCE</b> (popup banner, tag on each alert, and a one-time Telegram notice), and so does the website. Turning it off tells everyone it is back. Reaches installs on the latest build, within about 15 minutes.</p>
     <textarea id="mMsg" style="min-height:70px" maxlength="400">The extension is undergoing maintenance. Alerts may be delayed for a while. We will message you here as soon as it is back to normal.</textarea>
+    <div class="row2" style="margin-bottom:10px;align-items:center">
+      <input type="text" id="mMin" placeholder="Only builds older than… e.g. 1.15.2 (empty = everyone)" maxlength="12" style="max-width:330px;margin:0">
+      <label class="note" style="margin:0"><input type="checkbox" id="mUpd"> Update required (lock screen + Download button)</label>
+      <label class="note" style="margin:0"><input type="checkbox" id="mBlock"> also stop alerts on those builds</label>
+    </div>
     <div class="row2"><button class="btn" id="mOn">Turn maintenance ON</button><button class="ghost" id="mOff">Turn it OFF</button></div>
     <div class="msg" id="mMsgOut"></div>
   </div>
@@ -115,6 +120,16 @@ textarea:focus,input[type=text]:focus{border-color:var(--gold)}
     <textarea id="eText" style="min-height:150px" placeholder="Email message (optional: leave empty to use the Telegram message above)" maxlength="5000"></textarea>
     <div class="row2"><button class="btn" id="eSend">Email all accounts</button><button class="ghost" id="eTest">Send a test to one email</button></div>
     <div class="msg" id="eMsg"></div>
+  </div>
+
+  <div class="box" id="rvBox">
+    <h2>Reviews <span class="pill" id="rvStats">…</span></h2>
+    <p>What people wrote in the extension's Reviews tab. Hiding a review removes it from the extension and the website for everyone except its author, who is not told.</p>
+    <div class="tbl"><table style="min-width:640px">
+      <thead><tr><th>Who</th><th>Stars</th><th>Review</th><th>Version</th><th>Date</th><th></th></tr></thead>
+      <tbody id="rvRows"><tr><td colspan="6" class="dim">Loading…</td></tr></tbody>
+    </table></div>
+    <div class="msg" id="rvOut"></div>
   </div>
 
   <p class="note">Rows marked <span class="pill">no account</span> are installs that have never signed in to an extension account. They show up only from version 1.15.0 (the extension sends an anonymous install ID, version and channel once a day, nothing else). Older installs stay invisible until they update. "Last active" refreshes at most once a day (6 hours for accounts).</p>
@@ -176,11 +191,13 @@ async function load() {
   const mt = r.d.maint || { on: false };
   $('mState').textContent = mt.on ? 'ON' : 'off'; $('mState').className = 'pill ' + (mt.on ? 'cu' : '');
   if (mt.msg && mt.on) $('mMsg').value = mt.msg;
+  if (mt.on) { $('mMin').value = mt.minVersion || ''; $('mUpd').checked = mt.kind === 'update'; $('mBlock').checked = !!mt.block; }
   $('aCur').textContent = ann && ann.id ? 'Live now: ' + (ann.title || ann.text.slice(0, 40)) + (ann.minVersion ? ' [only older than ' + ann.minVersion + ']' : '') + ' (' + ago(ann.at) + ')' : 'Nothing published.';
   updCount();
   $('mailState').textContent = mailOn ? 'Gmail connector: connected.' : 'Gmail connector: not connected yet.';
   $('note').textContent = r.d.pending ? r.d.pending + ' older account(s) are still being filled in: refresh in a moment.' : '';
   draw();
+  loadReviews();
 }
 
 function show(on) { $('login').hidden = on; $('app').hidden = !on; if (on) load(); }
@@ -209,6 +226,23 @@ $('csv').onclick = () => {
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'alerts-users.csv'; a.click();
 };
 
+async function loadReviews() {
+  const r = await api('/admin/reviews');
+  if (!r.ok) { $('rvStats').textContent = 'unavailable'; $('rvRows').innerHTML = '<tr><td colspan="6" class="dim">' + esc(r.d.error || 'Could not load.') + '</td></tr>'; return; }
+  const s = r.d.stats;
+  $('rvStats').textContent = s.total ? s.visible + ' shown · ' + s.average + ' ★' + (s.hidden ? ' · ' + s.hidden + ' hidden' : '') : 'none yet';
+  $('rvRows').innerHTML = r.d.reviews.map(x => '<tr' + (x.hidden ? ' style="opacity:.55"' : '') + '><td>' + esc(x.name) + (x.email ? '<br><span class="dim">' + esc(x.email) + '</span>' : '') +
+    '</td><td>' + '★'.repeat(x.rating) + '<span class="dim">' + '★'.repeat(5 - x.rating) + '</span></td><td style="white-space:normal;min-width:220px">' + esc(x.text || '—') +
+    '</td><td class="dim">' + esc(x.version || '—') + '</td><td class="dim">' + day(x.created) + '</td><td><button class="del" data-id="' + x.id + '" data-h="' + (x.hidden ? 0 : 1) + '">' + (x.hidden ? 'Show' : 'Hide') + '</button></td></tr>').join('')
+    || '<tr><td colspan="6" class="dim">No reviews yet.</td></tr>';
+}
+$('rvRows').onclick = async e => {
+  const b = e.target.closest('button[data-id]'); if (!b) return;
+  b.disabled = true;
+  const r = await api('/admin/reviews/hide', { method: 'POST', body: JSON.stringify({ id: Number(b.dataset.id), hidden: b.dataset.h === '1' }) });
+  $('rvOut').textContent = r.ok ? '' : (r.d.error || 'Failed.');
+  loadReviews();
+};
 $('rows').onclick = async e => {
   const b = e.target.closest('.del'); if (!b) return;
   const k = b.dataset.k, inst = k.startsWith('i:'), val = k.slice(2);
@@ -222,7 +256,7 @@ $('rows').onclick = async e => {
 };
 async function setMaint(on) {
   if (!confirm(on ? 'Show UNDERGOING MAINTENANCE to all users?' : 'Tell everyone the service is back?')) return;
-  const r = await api('/admin/maintenance', { method: 'POST', body: JSON.stringify({ on, msg: $('mMsg').value }) });
+  const r = await api('/admin/maintenance', { method: 'POST', body: JSON.stringify({ on, msg: $('mMsg').value, minVersion: $('mMin').value.trim(), kind: $('mUpd').checked ? 'update' : '', block: $('mBlock').checked }) });
   $('mMsgOut').textContent = r.ok ? (on ? 'Maintenance is ON.' : 'Maintenance is OFF.') : (r.d.error || 'Failed.');
   if (r.ok) load();
 }

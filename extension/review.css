@@ -1,0 +1,54 @@
+/* Reviews tab + the review / "what's new" window. Uses the popup's own colour variables. */
+.rvhead{background:var(--panel-2);border:1px solid var(--line-soft);border-radius:14px;padding:14px;margin-bottom:12px}
+.rvhead__row{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.rvhead__avg{min-width:52px;font-size:34px;font-weight:800;letter-spacing:-.02em}
+.rvstars{font-size:17px;line-height:1;letter-spacing:.08em;color:var(--gold)}
+.rvstars i{font-style:normal;color:rgba(255,255,255,.18)}
+.rvhead__n{margin-top:3px;font-size:12px;color:var(--muted)}
+.rvblock{display:block;width:100%}
+.rvitem{margin-bottom:8px;padding:11px 13px;border:1px solid var(--line-soft);border-radius:12px;background:var(--panel-2)}
+.rvitem--mine{border-color:rgba(217,122,61,.5);background:linear-gradient(160deg,rgba(217,122,61,.10),var(--panel-2) 70%)}
+.rvitem__top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.rvitem__name{font-size:12.5px;font-weight:700}
+.rvitem__date{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.rvitem__text{margin:5px 0 0;font-size:12.5px;line-height:1.5;white-space:pre-line;word-break:break-word}
+.rvtag{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-lt)}
+.rvempty{padding:18px 8px;text-align:center;font-size:12.5px;color:var(--muted)}
+.rvmsg{margin:8px 0;font-size:12px;color:var(--bad)}
+
+.rvmodal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:12px;overflow:auto;background:rgba(5,12,24,.86)}
+.rvmodal[hidden]{display:none}
+.rvmodal__box{width:100%;max-width:340px;margin:auto;padding:18px 16px;border:1px solid rgba(217,122,61,.5);border-radius:16px;background:var(--panel);box-shadow:0 20px 60px -20px rgba(0,0,0,.8)}
+.rvmodal__box:focus{outline:none}
+.rvmodal__title{margin-bottom:4px;font-size:16px;font-weight:800;line-height:1.3}
+.rvmodal__sub{margin-bottom:12px;font-size:12px;line-height:1.45;color:var(--muted)}
+.rvnote{margin:0 0 14px;padding:12px 13px;border:1px solid rgba(217,122,61,.4);border-radius:12px;background:rgba(217,122,61,.08)}
+.rvnote b{display:block;margin-bottom:6px;font-size:13.5px;color:var(--gold-lt)}
+.rvnote ul{margin:0;padding-left:17px;font-size:12px;line-height:1.55}
+.rvnote li{margin-bottom:3px}
+.rvdiv{margin:0 0 14px;border:0;border-top:1px solid var(--line-soft)}
+.rvpick{display:flex;justify-content:center;gap:4px;margin-bottom:2px}
+.rvpick button{padding:2px 3px;border:0;background:none;cursor:pointer;font:inherit;font-size:34px;line-height:1;color:rgba(255,255,255,.2);transition:transform .1s}
+.rvpick button.on,.rvpick button.hov{color:var(--gold)}
+.rvpick button:hover{transform:scale(1.12)}
+.rvpick button:focus-visible{outline:2px solid var(--gold-lt);border-radius:6px}
+.rvpick__label{height:18px;margin-bottom:8px;text-align:center;font-size:12px;font-weight:700;color:var(--gold-lt)}
+.rvmodal textarea{display:block;width:100%;resize:none;padding:8px 9px;border:1px solid var(--line-soft);border-radius:10px;background:rgba(255,255,255,.04);color:var(--text);font:inherit;font-size:12.5px;box-sizing:border-box}
+.rvmodal textarea:focus{outline:none;border-color:var(--gold)}
+.rvmodal__count{margin:3px 2px 6px;text-align:right;font-size:10.5px;color:var(--muted)}
+.rvmodal__fine{margin-bottom:10px;font-size:10.5px;line-height:1.45;color:var(--muted)}
+.rvmodal__links{display:flex;justify-content:space-between;gap:10px;margin-top:10px}
+.rvmodal .rvmsg{margin:0 0 10px}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
+.linkbtn:hover{color:var(--gold-lt)}
+.rvthanks{padding:14px 4px;text-align:center}
+.rvthanks b{display:block;margin-bottom:6px;font-size:18px}
+.rvthanks p{margin:0 0 14px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.rvgot{margin-top:4px}
+
+/* "Update required" lock screen extras (the maintenance screen doubles as it) */
+.mt-btn{display:inline-block;margin:6px 0 12px;padding:11px 20px;border-radius:10px;background:linear-gradient(135deg,#F2B583,#D97A3D);color:#1a1200;font-weight:800;text-decoration:none}
+.mt-steps{margin:0 auto 10px;padding-left:18px;text-align:left;font-size:12.5px;line-height:1.55;color:#cbd6e6}
+
+/* the display rules above must not override the hidden attribute */
+.rvmodal [hidden],#paneReviews [hidden],.rvblock[hidden],.rvmodal__links[hidden]{display:none!important}

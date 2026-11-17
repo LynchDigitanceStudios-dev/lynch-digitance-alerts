@@ -1,3 +1,4 @@
+import { LynchReview } from './review-core.js';
 /*
  * background.js — service worker.
  *
@@ -127,7 +128,7 @@ function format(e, c) {
   const who = label ? `${label} (${e.account})` : e.account;
 
   return [
-    'LYNCH DIGITANCE · ALERTS' + (c.fvnMaint && c.fvnMaint.on ? ' · 🔧 UNDERGOING MAINTENANCE' : ''),
+    'LYNCH DIGITANCE · ALERTS' + (c.fvnMaint && c.fvnMaint.on ? (c.fvnMaint.kind === 'update' ? ' · ⬆️ UPDATE REQUIRED' : ' · 🔧 UNDERGOING MAINTENANCE') : ''),
     `${icon} ${LOUD[e.type] ? 'Fiverr ' + LOUD[e.type] : 'Fiverr'} · ${who}`,
     `From: ${e.from}`,
     '',
@@ -418,14 +419,18 @@ chrome.alarms.create('fvn-update', { periodInMinutes: 360 });   // every 6h
 /* Maintenance switch from the studio: shown in the popup, tagged on every alert, and announced
  * once on the way in and once on the way out. */
 async function applyMaint(m, c) {
+  // A notice can be limited to builds older than m.minVersion ("update required"): a build that is already
+  // new enough simply ignores it.
+  if (m && m.on && m.minVersion && !newerThan(m.minVersion, chrome.runtime.getManifest().version)) m = { on: false, id: m.id };
   const { fvnMaint, fvnMaintSeen } = await chrome.storage.local.get(['fvnMaint', 'fvnMaintSeen']);
   const was = !!(fvnMaint && fvnMaint.on);
-  await chrome.storage.local.set({ fvnMaint: m.on ? { on: true, msg: m.msg || '', id: m.id } : null });
+  const upd = m.kind === 'update';
+  await chrome.storage.local.set({ fvnMaint: m.on ? { on: true, msg: m.msg || '', id: m.id, kind: m.kind || '', block: !!m.block } : null });
   const key = (m.id || '') + ':' + (m.on ? 1 : 0);
   if (key !== fvnMaintSeen && (m.on || was)) {
     if (c.enabled) {
       await send(m.on
-        ? ['LYNCH DIGITANCE · ALERTS', '🔧 UNDERGOING MAINTENANCE', '', m.msg || 'Alerts may be delayed.'].join('\n')
+        ? ['LYNCH DIGITANCE · ALERTS', upd ? '⬆️ UPDATE REQUIRED' : '🔧 UNDERGOING MAINTENANCE', '', m.msg || 'Alerts may be delayed.'].join('\n')
         : ['LYNCH DIGITANCE · ALERTS', '✅ Back to normal', '', 'Maintenance is finished. Alerts are running as usual.'].join('\n'), c);
     }
     await chrome.storage.local.set({ fvnMaintSeen: key });
@@ -995,14 +1000,17 @@ async function bumpUnread(account) {
 /* One badge, two things competing for it. The unread count wins when there is
    one — it's time-sensitive — and the update flag shows only when you're clear. */
 async function refreshBadge() {
-  const { fvnUnseen = {}, fvnUpdate = {}, fvnMaint = null } =
-    await chrome.storage.local.get(['fvnUnseen', 'fvnUpdate', 'fvnMaint']);
+  const { fvnUnseen = {}, fvnUpdate = {}, fvnMaint = null, fvnAttention = false } =
+    await chrome.storage.local.get(['fvnUnseen', 'fvnUpdate', 'fvnMaint', 'fvnAttention']);
 
   const total = Object.values(fvnUnseen).reduce((a, b) => a + b, 0);
 
   if (fvnMaint && fvnMaint.on) {
-    chrome.action.setBadgeText({ text: 'FIX' });
+    chrome.action.setBadgeText({ text: fvnMaint.kind === 'update' ? 'UPD' : 'FIX' });
     chrome.action.setBadgeBackgroundColor({ color: '#c0392b' });
+  } else if (fvnAttention) {
+    chrome.action.setBadgeText({ text: '★' });
+    chrome.action.setBadgeBackgroundColor({ color: '#D97A3D' });
   } else if (total > 0) {
     chrome.action.setBadgeText({ text: total > 99 ? '99+' : String(total) });
     chrome.action.setBadgeBackgroundColor({ color: '#D97A3D' });
@@ -1023,6 +1031,16 @@ async function markAllSeen() {
 
 chrome.runtime.onStartup.addListener(refreshBadge);
 chrome.runtime.onInstalled.addListener(refreshBadge);
+// After an update: draw attention to the popup (a star on the icon, and open it if Chrome allows) so the
+// "what's new" note and the review window are the first thing people see.
+chrome.runtime.onInstalled.addListener(async d => {
+  const r = await LynchReview.onInstalled(d);
+  if (r && r.openNow) {
+    await chrome.storage.local.set({ fvnAttention: true });
+    await refreshBadge();
+    try { await chrome.action.openPopup(); } catch (e) { /* needs a focused window: the star is the fallback */ }
+  }
+});
 
 // ---------------------------------------------------------------- log
 async function log(entry) {
@@ -1061,6 +1079,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       return reply({ ok: true });
     }
 
+    if (msg.kind === 'fvn-review-prompt') return reply(await LynchReview.prompt());
+    if (msg.kind === 'fvn-review-list') return reply(await LynchReview.list());
+    if (msg.kind === 'fvn-review-submit') return reply(await LynchReview.submit(msg.rating, msg.text));
+    if (msg.kind === 'fvn-review-later') return reply(await LynchReview.later());
+    if (msg.kind === 'fvn-review-never') return reply(await LynchReview.never());
+    if (msg.kind === 'fvn-note-seen') { const nr = await LynchReview.noteSeen(); await refreshBadge(); return reply(nr); }
+
     if (msg.kind === 'fvn-reply-status') {
       const rc = await replyCfg();
       const { replyState = null, acctToken } = await chrome.storage.local.get(['replyState', 'acctToken']);
@@ -1077,6 +1102,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     if (msg.kind === 'fvn-event') {
       const c = await cfg();
       if (!c.enabled || Date.now() < c.quietUntil) return reply({ ok: false, reason: 'disabled' });
+      if (c.fvnMaint && c.fvnMaint.on && c.fvnMaint.kind === 'update' && c.fvnMaint.block) return reply({ ok: false, reason: 'update-required' });
 
       const e = msg.event;
       const fp = e.fingerprint || (e.account + '|' + e.from + e.text).slice(0, 180);
