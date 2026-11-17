@@ -237,7 +237,7 @@ export default {
       if (request.method === 'OPTIONS') return new Response(null, { headers: CORS_ACCT });
       if (!env.ACCOUNTS) return ajson({ error: 'Not set up' }, 503);
       if (url.pathname === '/ping' && request.method === 'POST') return handlePing(request, env);
-      if (url.pathname === '/announce' && request.method === 'GET') return handleAnnounce(env);
+      if (url.pathname === '/announce' && request.method === 'GET') return handleAnnounce(env, request);
       return ajson({ error: 'Not found' }, 404);
     }
 
@@ -676,10 +676,20 @@ async function handlePing(request, env) {
 
 /* ---- announcements: you write one in the admin page; every extension picks it up on its next check
  *      and sends it to its OWN Telegram bot (so it reaches people without an account too). ---- */
-async function handleAnnounce(env) {
-  const a = await env.ACCOUNTS.get('announce:latest', 'json');
-  const maint = await env.ACCOUNTS.get('maint:state', 'json');
-  return ajson({ ...(a || {}), maint: maint || { on: false } });
+async function handleAnnounce(env, request) {
+  let st = null;
+  try { st = await env.ASSETS.fetch(new Request(new URL('/status.json', request.url))); } catch (e) { st = null; }
+  let fixed = null;
+  try { if (st && st.ok) fixed = await st.json(); } catch (e) { fixed = null; }
+  // A switched-on maintenance in status.json always wins: it does not depend on KV being reachable.
+  if (fixed && fixed.maint && fixed.maint.on) return ajson(fixed);
+  try {
+    const a = await env.ACCOUNTS.get('announce:latest', 'json');
+    const maint = await env.ACCOUNTS.get('maint:state', 'json');
+    return ajson({ ...(a || {}), maint: maint || { on: false } });
+  } catch (e) {
+    return ajson(fixed || { maint: { on: false } });
+  }
 }
 /* Maintenance switch: every install (and the website) shows "UNDERGOING MAINTENANCE" while it is on. */
 async function adminMaintenance(request, env) {
