@@ -424,6 +424,9 @@ footer{
 .rvcard .st{color:var(--gold);letter-spacing:.1em;font-size:16px}
 .rvcard .st i{font-style:normal;color:rgba(255,255,255,.2)}
 .rvcard p{margin:8px 0 10px;color:var(--text);font-size:14.5px;white-space:pre-line;word-break:break-word}
+.rvreply{margin-top:12px;padding:10px 12px;border-left:3px solid var(--copper,#d97a3d);background:rgba(217,122,61,.08);border-radius:8px}
+.rvreply b{display:block;font-size:12px;color:var(--copper,#d97a3d);letter-spacing:.02em}
+.rvreply p{margin:4px 0 0;font-size:13.5px}
 .rvcard .who{color:var(--muted);font-size:13px;font-weight:600}
 </style>
 </head>
@@ -433,7 +436,6 @@ footer{
 <div class="glow a"></div>
 <div class="glow b"></div>
 
-<div id="maintStrip" hidden style="position:relative;z-index:60;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-weight:800;letter-spacing:.04em;font-size:14px"></div>
 <header>
   <nav>
     <a class="brand" href="https://www.lynchdigitancestudios.workers.dev">
@@ -728,7 +730,6 @@ footer{
           <li><b>Reply to buyers from Telegram (optional).</b> Tap ↩️ Reply under any alert, type your answer, confirm with ✅ Send, and it is typed into that buyer's chat on Fiverr from the right account. One switch in Settings, works for every account open in that browser, and you confirm every reply. It writes in your Fiverr tab, which Fiverr's rules may restrict, so try it on one account first.</li>
           <li><b>"Back online" summary.</b> If your browser was closed or a Fiverr tab was away, you now get one message when watching resumes: how long it was off and how many unread messages are waiting on Fiverr. Nothing that arrived while it was off slips by unnoticed.</li>
           <li><b>Long messages arrive in full.</b> A 2,000-character buyer message now reaches Telegram complete, with no cut-off. Anything over Telegram's own limit is split into numbered parts, and replying to any part still goes to the right buyer.</li>
-          <li><b>Maintenance notices.</b> When the studio is working on the extension, it shows a clear "undergoing maintenance" screen and tells you on Telegram when it is back.</li>
         </ul>
       </div>
 
@@ -1211,10 +1212,6 @@ document.querySelectorAll('.feat').forEach(card => {
 })();
 </script>
 <script>
-(async()=>{try{const r=await fetch('/announce',{cache:'no-store'});const j=await r.json();const m=j&&j.maint;
-if(m&&m.on){const s=document.getElementById('maintStrip');s.textContent='🔧 UNDERGOING MAINTENANCE'+(m.msg?' — '+m.msg:'');s.hidden=false;}}catch(e){}})();
-</script>
-<script>
 /* Reviews: shown only when there is at least one. Everything goes in with textContent, never as HTML. */
 (async()=>{try{
   const r=await fetch('/reviews?limit=12',{cache:'no-store'}); if(!r.ok) return;
@@ -1224,7 +1221,9 @@ if(m&&m.on){const s=document.getElementById('maintStrip');s.textContent='🔧 UN
   (d.reviews||[]).forEach(x=>{
     const c=mk('div','rvcard'); const st=mk('div','st','★★★★★'.slice(0,x.rating));
     if(x.rating<5) st.appendChild(mk('i','','★★★★★'.slice(0,5-x.rating)));
-    c.appendChild(st); if(x.text) c.appendChild(mk('p','',x.text)); c.appendChild(mk('div','who',x.name||'Alerts user')); grid.appendChild(c);
+    c.appendChild(st); if(x.text) c.appendChild(mk('p','',x.text)); c.appendChild(mk('div','who',x.name||'Alerts user'));
+    if(x.reply){const rp=mk('div','rvreply'); rp.appendChild(mk('b','','Reply from Lynch Digitance Studios')); rp.appendChild(mk('p','',x.reply)); c.appendChild(rp);}
+    grid.appendChild(c);
   });
   document.getElementById('rvSummary').textContent=d.average.toFixed(1)+' out of 5 from '+d.count+(d.count===1?' review':' reviews')+'. Written by people who use it.';
   document.getElementById('reviews').hidden=false;

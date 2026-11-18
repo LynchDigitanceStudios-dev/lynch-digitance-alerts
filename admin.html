@@ -226,17 +226,38 @@ $('csv').onclick = () => {
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'alerts-users.csv'; a.click();
 };
 
+function replyUi(x) {
+  return '<div class="rp" data-id="' + x.id + '" style="margin-top:8px">' +
+    (x.reply ? '<div class="rptext" style="padding:8px 10px;border-left:3px solid var(--copper,#d97a3d);background:rgba(217,122,61,.08);border-radius:6px;margin-bottom:6px"><b>Your reply:</b> ' + esc(x.reply) + '</div>' : '') +
+    '<button class="del rpToggle" type="button">' + (x.reply ? 'Edit reply' : 'Reply') + '</button>' +
+    '<div class="rpedit" hidden><textarea maxlength="500" rows="3" style="width:100%;margin-top:6px" placeholder="Your public reply (max 500 characters). Shown under this review in the extension and on the website.">' + esc(x.reply || '') + '</textarea>' +
+    '<div style="margin-top:6px"><button class="btn rpSave" type="button">Post reply</button> ' + (x.reply ? '<button class="del rpRemove" type="button">Remove reply</button>' : '') + '</div></div></div>';
+}
 async function loadReviews() {
   const r = await api('/admin/reviews');
   if (!r.ok) { $('rvStats').textContent = 'unavailable'; $('rvRows').innerHTML = '<tr><td colspan="6" class="dim">' + esc(r.d.error || 'Could not load.') + '</td></tr>'; return; }
   const s = r.d.stats;
   $('rvStats').textContent = s.total ? s.visible + ' shown · ' + s.average + ' ★' + (s.hidden ? ' · ' + s.hidden + ' hidden' : '') : 'none yet';
   $('rvRows').innerHTML = r.d.reviews.map(x => '<tr' + (x.hidden ? ' style="opacity:.55"' : '') + '><td>' + esc(x.name) + (x.email ? '<br><span class="dim">' + esc(x.email) + '</span>' : '') +
-    '</td><td>' + '★'.repeat(x.rating) + '<span class="dim">' + '★'.repeat(5 - x.rating) + '</span></td><td style="white-space:normal;min-width:220px">' + esc(x.text || '—') +
+    '</td><td>' + '★'.repeat(x.rating) + '<span class="dim">' + '★'.repeat(5 - x.rating) + '</span></td><td style="white-space:normal;min-width:220px">' + esc(x.text || '—') + replyUi(x) +
     '</td><td class="dim">' + esc(x.version || '—') + '</td><td class="dim">' + day(x.created) + '</td><td><button class="del" data-id="' + x.id + '" data-h="' + (x.hidden ? 0 : 1) + '">' + (x.hidden ? 'Show' : 'Hide') + '</button></td></tr>').join('')
     || '<tr><td colspan="6" class="dim">No reviews yet.</td></tr>';
 }
 $('rvRows').onclick = async e => {
+  const rp = e.target.closest('.rp');
+  if (rp) {
+    const id = Number(rp.dataset.id);
+    if (e.target.closest('.rpToggle')) { const ed = rp.querySelector('.rpedit'); ed.hidden = !ed.hidden; return; }
+    const btn = e.target.closest('.rpSave, .rpRemove');
+    if (btn) {
+      btn.disabled = true;
+      const text = btn.classList.contains('rpRemove') ? '' : rp.querySelector('textarea').value;
+      const r = await api('/admin/reviews/reply', { method: 'POST', body: JSON.stringify({ id, reply: text }) });
+      $('rvOut').textContent = r.ok ? (text ? 'Reply posted. It is live now.' : 'Reply removed.') : (r.d.error || 'Failed.');
+      loadReviews();
+      return;
+    }
+  }
   const b = e.target.closest('button[data-id]'); if (!b) return;
   b.disabled = true;
   const r = await api('/admin/reviews/hide', { method: 'POST', body: JSON.stringify({ id: Number(b.dataset.id), hidden: b.dataset.h === '1' }) });

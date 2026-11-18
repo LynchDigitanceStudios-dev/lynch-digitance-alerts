@@ -257,6 +257,7 @@ const handlers = {
       if (url.pathname === '/admin/maintenance' && request.method === 'POST') return adminMaintenance(request, env);
       if (url.pathname === '/admin/reviews' && request.method === 'GET') return adminReviews(request, env);
       if (url.pathname === '/admin/reviews/hide' && request.method === 'POST') return adminReviewHide(request, env);
+      if (url.pathname === '/admin/reviews/reply' && request.method === 'POST') return adminReviewReply(request, env);
       return ajson({ error: 'Not found' }, 404);
     }
 
@@ -858,11 +859,11 @@ async function handleReviews(request, env, url) {
       if (hit && Date.now() - hit.at < 15000) body = hit.body;
       else {
         const agg = await env.DB.prepare('SELECT COUNT(*) AS n, AVG(rating) AS avg FROM reviews WHERE hidden = 0').first();
-        const rows = (await env.DB.prepare('SELECT id, name, rating, body, created_at FROM reviews WHERE hidden = 0 ORDER BY created_at DESC, id DESC LIMIT ?').bind(want).all()).results || [];
+        const rows = (await env.DB.prepare('SELECT id, name, rating, body, created_at, reply, reply_at FROM reviews WHERE hidden = 0 ORDER BY created_at DESC, id DESC LIMIT ?').bind(want).all()).results || [];
         body = JSON.stringify({
           count: agg.n || 0,
           average: agg.n ? Math.round(agg.avg * 10) / 10 : 0,
-          reviews: rows.map(r => ({ id: r.id, name: r.name, rating: r.rating, text: r.body, at: r.created_at }))
+          reviews: rows.map(r => ({ id: r.id, name: r.name, rating: r.rating, text: r.body, at: r.created_at, reply: r.reply || null, replyAt: r.reply_at || null }))
         });
         RV_CACHE.set(want, { at: Date.now(), body });
       }
@@ -881,10 +882,10 @@ async function handleReviews(request, env, url) {
     if (url.pathname === '/reviews/mine' && request.method === 'GET') {
       const inst = url.searchParams.get('install') || '';
       let row = null;
-      if (email) row = await env.DB.prepare('SELECT id, name, rating, body FROM reviews WHERE email = ?').bind(email).first();
-      if (!row && INSTALL_RE.test(inst)) row = await env.DB.prepare('SELECT id, name, rating, body FROM reviews WHERE install_id = ?').bind(inst).first();
+      if (email) row = await env.DB.prepare('SELECT id, name, rating, body, reply FROM reviews WHERE email = ?').bind(email).first();
+      if (!row && INSTALL_RE.test(inst)) row = await env.DB.prepare('SELECT id, name, rating, body, reply FROM reviews WHERE install_id = ?').bind(inst).first();
       // a review the owner hid is still shown to its author as theirs
-      return rvJson({ review: row ? { id: row.id, name: row.name, rating: row.rating, text: row.body } : null });
+      return rvJson({ review: row ? { id: row.id, name: row.name, rating: row.rating, text: row.body, reply: row.reply || null } : null });
     }
 
     /* write or edit one */
@@ -940,13 +941,26 @@ async function handleReviews(request, env, url) {
 async function adminReviews(request, env) {
   if (!(await adminAuth(request, env))) return ajson({ error: 'Signed out.' }, 401);
   if (!env.DB) return ajson({ error: 'Reviews are not set up yet.' }, 503);
-  const rows = (await env.DB.prepare('SELECT id, name, email, rating, body, version, created_at AS created, updated_at AS updated, hidden FROM reviews ORDER BY created_at DESC, id DESC LIMIT 1000').all()).results || [];
+  const rows = (await env.DB.prepare('SELECT id, name, email, rating, body, version, created_at AS created, updated_at AS updated, hidden, reply, reply_at FROM reviews ORDER BY created_at DESC, id DESC LIMIT 1000').all()).results || [];
   const shown = rows.filter(r => !r.hidden);
   return ajson({
     stats: { total: rows.length, visible: shown.length, hidden: rows.length - shown.length,
              average: shown.length ? Math.round((shown.reduce((n, r) => n + r.rating, 0) / shown.length) * 10) / 10 : 0 },
-    reviews: rows.map(r => ({ id: r.id, name: r.name, email: r.email || null, rating: r.rating, text: r.body, version: r.version || null, created: r.created, updated: r.updated, hidden: !!r.hidden }))
+    reviews: rows.map(r => ({ id: r.id, name: r.name, email: r.email || null, rating: r.rating, text: r.body, version: r.version || null, created: r.created, updated: r.updated, hidden: !!r.hidden, reply: r.reply || null, replyAt: r.reply_at || null }))
   });
+}
+/* owner only: write, change or remove the studio's public reply under a review */
+async function adminReviewReply(request, env) {
+  if (!(await adminAuth(request, env))) return ajson({ error: 'Signed out.' }, 401);
+  if (!env.DB) return ajson({ error: 'Reviews are not set up yet.' }, 503);
+  let b = {}; try { b = await request.json(); } catch { return ajson({ error: 'Bad request' }, 400); }
+  const id = parseInt(b.id, 10);
+  if (!Number.isInteger(id) || id < 1 || typeof b.reply !== 'string') return ajson({ error: 'Bad request' }, 400);
+  const reply = b.reply.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, 500);
+  const res = await env.DB.prepare('UPDATE reviews SET reply = ?, reply_at = ? WHERE id = ?').bind(reply || null, reply ? Date.now() : null, id).run();
+  if (!res.meta.changes) return ajson({ error: 'No such review.' }, 404);
+  RV_CACHE.clear();
+  return ajson({ ok: true, reply: reply || null });
 }
 async function adminReviewHide(request, env) {
   if (!(await adminAuth(request, env))) return ajson({ error: 'Signed out.' }, 401);
