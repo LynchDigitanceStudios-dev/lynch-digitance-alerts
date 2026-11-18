@@ -750,3 +750,18 @@ setInterval(load, 5000);
   const btn = document.getElementById('openAdv');
   if (btn) btn.onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
 })();
+
+/* Eye icon on password fields: show / hide what you typed. */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-eye]');
+  if (!b) return;
+  const inp = b.parentElement.querySelector('input');
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  b.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  b.title = show ? 'Hide password' : 'Show password';
+  b.querySelector('.e-on').hidden = show;
+  b.querySelector('.e-off').hidden = !show;
+  inp.focus();
+});

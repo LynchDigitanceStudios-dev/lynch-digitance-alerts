@@ -58,6 +58,11 @@ input[type=text],input[type=number],select{
 }
 input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--gold);background:var(--panel-2)}
 input::placeholder{color:#5f594f}
+.pw{position:relative}
+.pw input{padding-right:40px!important}
+.pw .eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:none;border:0;border-radius:8px;color:var(--muted);cursor:pointer;padding:0}
+.pw .eye:hover,.pw .eye:focus-visible{color:var(--gold);outline:none;background:rgba(255,255,255,.06)}
+.pw .eye svg[hidden]{display:none}
 select{cursor:pointer}
 option{background:#121110;color:var(--text)}
 
@@ -353,8 +358,8 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
     <div id="acctOut">
       <div class="hint" style="margin-bottom:8px">Sign in to keep your settings on your account — sign in on any other browser and everything comes back automatically.</div>
       <input type="text" id="acctEmail" placeholder="Email" autocomplete="email">
-      <input type="password" id="acctPass" placeholder="Password (8+ characters)" autocomplete="current-password"
-             style="width:100%;padding:8px 10px;border:1px solid var(--line-soft);border-radius:8px;background:var(--panel);color:var(--text);font:inherit;font-size:12.5px;margin-top:6px">
+      <div class="pw" style="margin-top:6px"><input type="password" id="acctPass" placeholder="Password (8+ characters)" autocomplete="current-password"
+             style="width:100%;padding:8px 10px;border:1px solid var(--line-soft);border-radius:8px;background:var(--panel);color:var(--text);font:inherit;font-size:12.5px"><button type="button" class="eye" data-eye aria-label="Show password" title="Show password"><svg class="e-on" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="e-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.6 18.6 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg></button></div>
       <div class="btns" style="margin-top:8px">
         <button id="acctLogin" class="primary">Sign in</button>
         <button id="acctRegister" class="sec-btn">Create account</button>
@@ -548,20 +553,20 @@ body.maint > *:not(#maintScreen):not(script):not(style){display:none!important}
 
 </div>
 
-<!-- Sign-up prompt: shown when not signed in, dismissible. -->
-<div id="acctModal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;display:flex;align-items:center;justify-content:center;padding:18px">
-  <div style="width:100%;background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:20px 18px 16px">
-    <div style="font-weight:800;font-size:15px;margin-bottom:6px">Create your free account</div>
-    <div class="hint" style="margin:0 0 12px">Your settings get saved to it, so on any other browser or computer you just sign in and everything is already set up.</div>
-    <input type="text" id="mEmail" placeholder="Email" autocomplete="email">
-    <input type="password" id="mPass" placeholder="Password (8+ characters)" autocomplete="new-password"
-      style="width:100%;padding:8px 10px;border:1px solid var(--line-soft);border-radius:8px;background:var(--ink);color:var(--text);font:inherit;font-size:12.5px;margin-top:8px">
-    <div class="btns">
-      <button id="mRegister" class="primary" style="flex:1">Create account</button>
-      <button id="mLogin" class="sec-btn" style="flex:1">I have one — sign in</button>
+<!-- Sign-up prompt: shown when not signed in, dismissible. Kept short so it fits the popup without scrolling. -->
+<div id="acctModal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;display:flex;align-items:center;justify-content:center;padding:14px">
+  <div style="width:100%;background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:14px 14px 10px">
+    <div style="font-weight:800;font-size:14px;margin-bottom:3px">Create your free account</div>
+    <div class="hint" style="margin:0 0 8px;font-size:11.5px">Saves your settings, so any browser starts ready.</div>
+    <input type="text" id="mEmail" placeholder="Email" autocomplete="email" style="margin-top:0">
+    <div class="pw" style="margin-top:6px"><input type="password" id="mPass" placeholder="Password (8+ characters)" autocomplete="new-password"
+      style="width:100%;padding:8px 10px;border:1px solid var(--line-soft);border-radius:8px;background:var(--ink);color:var(--text);font:inherit;font-size:12.5px"><button type="button" class="eye" data-eye aria-label="Show password" title="Show password"><svg class="e-on" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="e-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.6 18.6 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg></button></div>
+    <div class="btns" style="margin-top:8px;gap:8px;flex-wrap:nowrap">
+      <button id="mRegister" class="primary" style="flex:1;padding:8px 6px">Create account</button>
+      <button id="mLogin" class="sec-btn" style="flex:1;padding:8px 6px">Sign in</button>
     </div>
-    <div class="hint" id="mMsg" style="color:var(--bad)"></div>
-    <button id="mLater" style="display:block;margin:12px auto 0;background:none;border:0;color:var(--muted);font-size:11.5px;text-decoration:underline">Maybe later</button>
+    <div class="hint" id="mMsg" style="color:var(--bad);margin:6px 0 0;min-height:0"></div>
+    <button id="mLater" style="display:block;margin:6px auto 0;background:none;border:0;color:var(--muted);font-size:11.5px;text-decoration:underline">Maybe later</button>
   </div>
 </div>
 
