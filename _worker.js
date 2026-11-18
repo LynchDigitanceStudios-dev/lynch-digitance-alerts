@@ -436,7 +436,7 @@ async function handleAccount(request, env, path) {
  * KV keys:
  *   route:<routeKey>        -> { email, chatId, secret }
  *   routeBy:<email>         -> routeKey
- *   mb:<email>:<account>    -> [ commands ]         (3-day TTL)
+ *   (waiting replies and button presses live in D1 tables mailbox + cmds, not KV)
  *   cmd:<id>                -> { email, account }   (7-day TTL, routes button presses)
  *   adm:<token>             -> '1'                  (12-hour admin session)
  */
@@ -502,9 +502,12 @@ const MB_EMPTY = new Map();       // mailbox key -> time until which it is known
 async function queueCmd(env, email, account, item) {
   const key = 'mb:' + email + ':' + account;
   MB_EMPTY.delete(key);
-  const list = (await env.ACCOUNTS.get(key, 'json')) || [];
-  list.push(item);
-  await env.ACCOUNTS.put(key, JSON.stringify(list.slice(-50)), { expirationTtl: 3 * 86400 });
+  const now = Date.now();
+  await env.DB.batch([
+    env.DB.prepare('INSERT OR REPLACE INTO mailbox (id, email, account, item, at) VALUES (?, ?, ?, ?, ?)').bind(String(item.id), email, account, JSON.stringify(item), now),
+    env.DB.prepare('DELETE FROM mailbox WHERE email = ? AND account = ? AND id NOT IN (SELECT id FROM mailbox WHERE email = ? AND account = ? ORDER BY at DESC LIMIT 50)').bind(email, account, email, account),
+    env.DB.prepare('DELETE FROM mailbox WHERE at < ?').bind(now - 3 * 86400e3)
+  ]);
 }
 
 /* POST /relay/enable  { chatId }  -> { routeKey, secret, url, fresh }
@@ -541,21 +544,24 @@ async function relayPoll(request, env, url) {
   const ack = new Set((url.searchParams.get('ack') || '').split(',').filter(Boolean));
   const key = 'mb:' + email + ':' + account;
   if (!ack.size) { const until = MB_EMPTY.get(key); if (until && until > Date.now()) return ajson({ items: [] }); }
-  let list = await env.ACCOUNTS.get(key, 'json');
-  if (!list) {
-    if (MB_EMPTY.size > 400) MB_EMPTY.clear();
-    MB_EMPTY.set(key, Date.now() + 20000);
-    return ajson({ items: [] });
-  }
-  if (ack.size) {
-    const rest = list.filter(i => !ack.has(i.id));
-    if (rest.length !== list.length) {
-      list = rest;
-      if (rest.length) await env.ACCOUNTS.put(key, JSON.stringify(rest), { expirationTtl: 3 * 86400 });
-      else await env.ACCOUNTS.delete(key);
+  try {
+    if (ack.size) {
+      const ids = [...ack].filter(x => /^[a-z0-9]{4,40}$/.test(x)).slice(0, 50);
+      if (ids.length) await env.DB.prepare('DELETE FROM mailbox WHERE email = ? AND account = ? AND id IN (' + ids.map(() => '?').join(',') + ')').bind(email, account, ...ids).run();
     }
+    const rs = await env.DB.prepare('SELECT item FROM mailbox WHERE email = ? AND account = ? ORDER BY at ASC LIMIT 10').bind(email, account).all();
+    const rows = (rs && rs.results) || [];
+    if (!rows.length) {
+      if (MB_EMPTY.size > 400) MB_EMPTY.clear();
+      MB_EMPTY.set(key, Date.now() + 5000);
+      return ajson({ items: [] });
+    }
+    const items = [];
+    for (const r of rows) { try { items.push(JSON.parse(r.item)); } catch { /* skip a damaged row */ } }
+    return ajson({ items });
+  } catch (e) {
+    return ajson({ items: [] });          // database hiccup: the extension simply asks again
   }
-  return ajson({ items: list.slice(0, 10) });
 }
 
 /* POST /tg/<routeKey>  — Telegram's webhook. Always answers 200 so Telegram doesn't retry. */
@@ -582,8 +588,7 @@ async function handleTelegram(request, env, routeKey) {
     await queueCmd(env, route.email, target.account, {
       id, t: 'reply', buyer: target.buyer, text, at: now, msgId: m.message_id
     });
-    await env.ACCOUNTS.put('cmd:' + id, JSON.stringify({ email: route.email, account: target.account }),
-      { expirationTtl: 7 * 86400 });
+    await env.DB.prepare('INSERT OR REPLACE INTO cmds (id, email, account, at) VALUES (?, ?, ?, ?)').bind(id, route.email, target.account, now).run();
     return ok();
   }
 
@@ -601,7 +606,7 @@ async function handleTelegram(request, env, routeKey) {
     }
     const mm = /^fvr:([a-z0-9]{8}):([yn])$/.exec(q.data || '');
     if (!mm) return ok();
-    const meta = await env.ACCOUNTS.get('cmd:' + mm[1], 'json');
+    const meta = await env.DB.prepare('SELECT email, account FROM cmds WHERE id = ?').bind(mm[1]).first();
     if (!meta || meta.email !== route.email) return ok();
     await queueCmd(env, route.email, meta.account, {
       id: rid(8), t: 'confirm', cmd: mm[1], yes: mm[2] === 'y',
@@ -696,8 +701,7 @@ async function adminDelete(request, env) {
   const routeKey = await env.ACCOUNTS.get('routeBy:' + email);
   if (routeKey) await env.ACCOUNTS.delete('route:' + routeKey);
   await env.ACCOUNTS.delete('routeBy:' + email);
-  const mb = await env.ACCOUNTS.list({ prefix: 'mb:' + email + ':', limit: 100 });
-  for (const k of mb.keys) await env.ACCOUNTS.delete(k.name);
+  if (env.DB) { try { await env.DB.batch([env.DB.prepare('DELETE FROM mailbox WHERE email = ?').bind(email), env.DB.prepare('DELETE FROM cmds WHERE email = ?').bind(email)]); } catch (e) { /* optional */ } }
   await env.ACCOUNTS.delete('user:' + email);
   if (env.DB) { try { await env.DB.prepare('DELETE FROM reviews WHERE email = ?').bind(email).run(); RV_CACHE.clear(); } catch (e) { /* review table is optional */ } }
   return ajson({ ok: true });

@@ -18,6 +18,7 @@ Fiverr's own email alerts can arrive hours late, long after a buyer has moved on
 - **Watchdog.** Warns you if an account stops being watched.
 - **Optional account** that syncs your settings between computers.
 - **Lynch AI.** A built-in assistant that explains settings and can change them.
+- **Reviews.** A Reviews tab with 1 to 5 stars and a short note, shown in the extension and on the website under a short name (never an email). Owners can hide a review from the admin page.
 - **Studio updates.** New-version and announcement messages are forwarded to your own bot.
 
 ## How it works

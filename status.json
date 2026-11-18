@@ -1,8 +1,10 @@
 {
   "maint": {
     "on": true,
-    "msg": "The extension is undergoing maintenance. Alerts may be delayed for a while.\n\nUPDATE: the fix is expected by 1:00 AM Nigerian time (WAT), 18 November. We will message you here as soon as it is back to normal.",
-    "id": "stmwl5tpaf",
-    "at": 1794948218439
+    "kind": "update",
+    "minVersion": "1.15.2",
+    "msg": "UPDATE REQUIRED. This version of Lynch Digitance Alerts is no longer supported. To have full access, update the extension: download https://alerts.lynchdigitancestudios.workers.dev/lynch-digitance-alerts.zip , unzip it over your old extension folder, then press Reload on chrome://extensions. Your settings are kept.",
+    "id": "upmwlcv4nh",
+    "at": 1794960042317
   }
 }
