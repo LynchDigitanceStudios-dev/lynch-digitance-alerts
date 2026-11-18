@@ -419,12 +419,6 @@ footer{
 @keyframes rbIn4{0%,56%{opacity:.18;transform:translateY(8px)}64%,92%{opacity:1;transform:none}100%{opacity:.18;transform:translateY(8px)}}
 @media(max-width:860px){.rb-grid{grid-template-columns:1fr}.rb-card{padding:32px 22px 28px}}
 @media(prefers-reduced-motion:reduce){.rb-step.s2,.rb-step.s3,.rb-step.s4{animation:none}}
-.rvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:30px}
-.rvcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
-.rvcard .st{color:var(--gold);letter-spacing:.1em;font-size:16px}
-.rvcard .st i{font-style:normal;color:rgba(255,255,255,.2)}
-.rvcard p{margin:8px 0 10px;color:var(--text);font-size:14.5px;white-space:pre-line;word-break:break-word}
-.rvcard .who{color:var(--muted);font-size:13px;font-weight:600}
 </style>
 </head>
 <body>
@@ -473,7 +467,7 @@ footer{
         <a class="btn btn-ghost" href="#setup">5-minute setup</a>
       </div>
       <div class="meta">
-        <span><b id="vHero">v1.15.2</b> current</span>
+        <span><b id="vHero">v1.15.1</b> current</span>
         <span><b>Free</b> forever</span>
         <span><b>Chrome</b> &amp; Edge</span>
         <span><b>Multi-account</b> supported</span>
@@ -701,27 +695,15 @@ footer{
   <div class="wrap">
     <div class="rv">
       <span class="eyebrow">What's new</span>
-      <h2 class="sec-h">Version <span id="vHead">1.15.2</span> is out.</h2>
+      <h2 class="sec-h">Version <span id="vHead">1.15.1</span> is out.</h2>
       <p class="sec-p">Already installed? Scroll past the notes — updating takes about thirty seconds and you keep every setting.</p>
     </div>
 
     <div style="margin-top:40px">
       <div class="rel rv">
         <div class="rel-top">
-          <span class="rel-v">v1.15.2</span>
-          <span class="tagpill">Latest</span>
-        </div>
-        <ul>
-          <li><b>Reviews.</b> A new Reviews tab: tell us how it is working for you with 1 to 5 stars and a short note. Reviews appear in the extension and on this page under a short name (never your email). You see a short "what's new" note the first time you open the extension after updating.</li>
-          <li><b>Update required.</b> From this version the studio can mark older versions as unsupported: they show a clear "update to have full access" screen with a Download button instead of the normal one.</li>
-          <li><b>Calmer on the server.</b> Checking for replies is lighter, so sign-in, sign-up and the admin stay fast and don't hit daily limits.</li>
-          <li><b>Everything from 1.15.1</b> is included: ↩️ Reply under each alert, the "back online" summary, long messages in full, simpler Settings and the full-page Advanced settings.</li>
-        </ul>
-      </div>
-
-      <div class="rel rv">
-        <div class="rel-top">
           <span class="rel-v">v1.15.1</span>
+          <span class="tagpill">Latest</span>
         </div>
         <ul>
           <li><b>Setup in about 30 seconds.</b> The Settings page is now just your Telegram bot, replies and your account. Everything else (offline warnings, desktop notifications, account names, the "still watching" message) is set sensibly for you, and each alert names the Fiverr username automatically. If you ever want to change those, the new Advanced button opens a full settings page.</li>
@@ -870,17 +852,6 @@ footer{
 </section>
 
 <!-- ================= FAQ ================= -->
-<section id="reviews" hidden>
-  <div class="wrap">
-    <div class="rv">
-      <span class="eyebrow">Reviews</span>
-      <h2 class="sec-h">What people say.</h2>
-      <p class="sec-p" id="rvSummary"></p>
-    </div>
-    <div class="rvgrid" id="rvGrid"></div>
-  </div>
-</section>
-
 <section id="faq">
   <div class="wrap">
     <div class="rv">
@@ -1213,22 +1184,6 @@ document.querySelectorAll('.feat').forEach(card => {
 <script>
 (async()=>{try{const r=await fetch('/announce',{cache:'no-store'});const j=await r.json();const m=j&&j.maint;
 if(m&&m.on){const s=document.getElementById('maintStrip');s.textContent='🔧 UNDERGOING MAINTENANCE'+(m.msg?' — '+m.msg:'');s.hidden=false;}}catch(e){}})();
-</script>
-<script>
-/* Reviews: shown only when there is at least one. Everything goes in with textContent, never as HTML. */
-(async()=>{try{
-  const r=await fetch('/reviews?limit=12',{cache:'no-store'}); if(!r.ok) return;
-  const d=await r.json(); if(!d||!d.count) return;
-  const grid=document.getElementById('rvGrid'); grid.textContent='';
-  const mk=(t,c,x)=>{const e=document.createElement(t); if(c) e.className=c; if(x!==undefined) e.textContent=x; return e;};
-  (d.reviews||[]).forEach(x=>{
-    const c=mk('div','rvcard'); const st=mk('div','st','★★★★★'.slice(0,x.rating));
-    if(x.rating<5) st.appendChild(mk('i','','★★★★★'.slice(0,5-x.rating)));
-    c.appendChild(st); if(x.text) c.appendChild(mk('p','',x.text)); c.appendChild(mk('div','who',x.name||'Alerts user')); grid.appendChild(c);
-  });
-  document.getElementById('rvSummary').textContent=d.average.toFixed(1)+' out of 5 from '+d.count+(d.count===1?' review':' reviews')+'. Written by people who use it.';
-  document.getElementById('reviews').hidden=false;
-}catch(e){}})();
 </script>
 </body>
 </html>

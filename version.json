@@ -1,5 +1,5 @@
 {
-  "version": "1.15.2",
-  "notes": "New: a Reviews tab (1 to 5 stars and a short note) and a short \"what's new\" note the first time you open the extension after updating. Older versions now show a clear \"update required\" screen. Lighter on the server. Includes everything from 1.15.1: reply from Telegram, the back-online summary, long messages in full, simpler Settings and the Advanced page.",
+  "version": "1.15.1",
+  "notes": "Much simpler setup: the Settings page now shows only Telegram, replies and your account, with everything else set sensibly for you. Long buyer messages now arrive in full. Includes optional Reply from Telegram (off by default) and studio maintenance notices.",
   "url": "https://alerts.lynchdigitancestudios.workers.dev/lynch-digitance-alerts.zip"
 }
