@@ -770,6 +770,31 @@ async function adminAnnounce(request, env) {
   const text = String(b.text || '').trim().slice(0, 1500);
   const title = String(b.title || '').trim().slice(0, 100);
   if (b.clear) { await env.ACCOUNTS.delete('announce:latest'); ANN_CACHE = null; return ajson({ ok: true }); }
+  // Optional: the same notice also shows as a dismissible banner inside the popup (1.16.0+).
+  let banner = null;
+  if (b.banner && typeof b.banner === 'object') {
+    const bt = String(b.banner.text || '').trim().slice(0, 240);
+    if (bt.length >= 3) {
+      const bl = String(b.banner.link || '').trim().slice(0, 300);
+      if (bl && !/^https:\/\/[^\s"'<>]+$/i.test(bl)) return ajson({ error: 'Banner link must start with https://' }, 400);
+      banner = {
+        title: String(b.banner.title || '').trim().slice(0, 60),
+        text: bt,
+        link: bl,
+        label: String(b.banner.label || '').trim().slice(0, 24) || 'Learn more'
+      };
+    }
+  }
+  // Attach (or remove) a banner on the live notice WITHOUT changing its id, so nobody
+  // gets the same Telegram message twice (extensions skip ids they already sent).
+  if (b.bannerOnly) {
+    const prev = await env.ACCOUNTS.get('announce:latest', 'json');
+    if (!prev || !prev.id) return ajson({ error: 'Nothing is published to attach a banner to.' }, 400);
+    if (banner) prev.banner = banner; else delete prev.banner;
+    await env.ACCOUNTS.put('announce:latest', JSON.stringify(prev));
+    ANN_CACHE = null;
+    return ajson({ ok: true, announce: prev });
+  }
   if (text.length < 3) return ajson({ error: 'Write the message first.' }, 400);
   const a = { id: rid(10), title, text, at: Date.now() };
   const mv = String(b.minVersion || '').trim();
@@ -777,6 +802,7 @@ async function adminAnnounce(request, env) {
     if (!/^\d+(\.\d+){1,3}$/.test(mv)) return ajson({ error: 'Version looks like 1.15.1' }, 400);
     a.minVersion = mv;            // each extension compares this with ITS OWN version; nothing about the user is stored
   }
+  if (banner) a.banner = banner;
   await env.ACCOUNTS.put('announce:latest', JSON.stringify(a));
   ANN_CACHE = null;
   return ajson({ ok: true, announce: a });

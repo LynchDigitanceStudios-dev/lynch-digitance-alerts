@@ -112,6 +112,17 @@ textarea:focus,input[type=text]:focus{border-color:var(--gold)}
     <input type="text" id="aTitle" placeholder="Title (optional)" maxlength="100">
     <textarea id="aText" placeholder="What do you want your users to know?" maxlength="1500"></textarea>
     <div class="row2" style="margin-bottom:8px"><input type="text" id="aMin" placeholder="Only installs older than… e.g. 1.15.1 (empty = everyone)" maxlength="12" style="max-width:340px;margin:0"><span class="note" id="aMinNote" style="margin:0"></span></div>
+    <div class="row2" style="margin-bottom:8px"><label class="note" style="margin:0"><input type="checkbox" id="aBanner"> Also show as a dismissible banner inside the extension popup</label></div>
+    <div id="aBannerBox" style="display:none">
+      <input type="text" id="aBTitle" placeholder="Banner title (optional — uses the title above)" maxlength="60">
+      <textarea id="aBText" placeholder="Short banner text (empty = uses the message above)" maxlength="240" style="min-height:64px"></textarea>
+      <div class="row2" style="margin-bottom:8px">
+        <input type="text" id="aBLink" placeholder="Link (optional, https://…)" maxlength="300" style="max-width:340px;margin:0">
+        <input type="text" id="aBLabel" placeholder="Link label (default: Learn more)" maxlength="24" style="max-width:220px;margin:0">
+      </div>
+      <div class="row2" style="margin-bottom:8px"><button class="ghost" id="aBannerOnly">Attach banner to the live notice (no Telegram resend)</button></div>
+      <p class="note" style="margin:0 0 8px">Banners appear in the popup for users on 1.16.0 and newer. They stay until the user presses ✕ or you publish a newer notice / press Clear.</p>
+    </div>
     <div class="row2"><button class="btn" id="aSend">Publish to Telegram</button><button class="ghost" id="aClear">Clear current</button><span class="note" id="aCur" style="margin:0"></span></div>
     <div class="msg" id="aMsg"></div>
     <h2 style="margin-top:18px">Email account holders</h2>
@@ -192,7 +203,7 @@ async function load() {
   $('mState').textContent = mt.on ? 'ON' : 'off'; $('mState').className = 'pill ' + (mt.on ? 'cu' : '');
   if (mt.msg && mt.on) $('mMsg').value = mt.msg;
   if (mt.on) { $('mMin').value = mt.minVersion || ''; $('mUpd').checked = mt.kind === 'update'; $('mBlock').checked = !!mt.block; }
-  $('aCur').textContent = ann && ann.id ? 'Live now: ' + (ann.title || ann.text.slice(0, 40)) + (ann.minVersion ? ' [only older than ' + ann.minVersion + ']' : '') + ' (' + ago(ann.at) + ')' : 'Nothing published.';
+  $('aCur').textContent = ann && ann.id ? 'Live now: ' + (ann.title || ann.text.slice(0, 40)) + (ann.minVersion ? ' [only older than ' + ann.minVersion + ']' : '') + (ann.banner ? ' · banner on' : '') + ' (' + ago(ann.at) + ')' : 'Nothing published.';
   updCount();
   $('mailState').textContent = mailOn ? 'Gmail connector: connected.' : 'Gmail connector: not connected yet.';
   $('note').textContent = r.d.pending ? r.d.pending + ' older account(s) are still being filled in: refresh in a moment.' : '';
@@ -292,13 +303,36 @@ function updCount() {
   $('aMinNote').textContent = 'Known to be older: ' + n + ' of ' + users.length + ' (installs that never reported a version count too).';
 }
 $('aMin').oninput = updCount;
+$('aBanner').onchange = () => { $('aBannerBox').style.display = $('aBanner').checked ? '' : 'none'; };
+$('aBannerOnly').onclick = async () => {
+  const banner = {
+    title: $('aBTitle').value.trim() || $('aTitle').value.trim(),
+    text: $('aBText').value.trim(),
+    link: $('aBLink').value.trim(), label: $('aBLabel').value.trim()
+  };
+  if (banner.text.length < 3) { $('aMsg').textContent = 'Write the short banner text first.'; return; }
+  const r = await api('/admin/announce', { method: 'POST', body: JSON.stringify({ bannerOnly: true, banner }) });
+  $('aMsg').textContent = r.ok ? 'Banner attached to the live notice. Nobody gets another Telegram message.' : (r.d.error || 'Failed.');
+  if (r.ok) load();
+};
 $('aSend').onclick = async () => {
   const text = $('aText').value.trim();
   if (text.length < 3) { $('aMsg').textContent = 'Write the message first.'; return; }
-  if (!confirm('Publish this to every user\'s Telegram?')) return;
-  const r = await api('/admin/announce', { method: 'POST', body: JSON.stringify({ title: $('aTitle').value, text, minVersion: $('aMin').value.trim() }) });
-  $('aMsg').textContent = r.ok ? 'Published. Extensions pick it up within about 15 minutes.' : (r.d.error || 'Failed.');
-  if (r.ok) { $('aText').value = ''; $('aTitle').value = ''; $('aMin').value = ''; load(); }
+  const withBanner = $('aBanner').checked;
+  if (!confirm(withBanner ? 'Publish to every user\'s Telegram AND show the banner in the extension popup?' : 'Publish this to every user\'s Telegram?')) return;
+  const banner = withBanner ? {
+    title: $('aBTitle').value.trim() || $('aTitle').value.trim(),
+    text: $('aBText').value.trim() || text.slice(0, 240),
+    link: $('aBLink').value.trim(), label: $('aBLabel').value.trim()
+  } : null;
+  const r = await api('/admin/announce', { method: 'POST', body: JSON.stringify({ title: $('aTitle').value, text, minVersion: $('aMin').value.trim(), banner }) });
+  $('aMsg').textContent = r.ok
+    ? 'Published. Extensions pick it up within about 15 minutes.' + (withBanner ? ' The banner shows for users on 1.16.0 and newer.' : '')
+    : (r.d.error || 'Failed.');
+  if (r.ok) {
+    ['aText', 'aTitle', 'aMin', 'aBTitle', 'aBText', 'aBLink', 'aBLabel'].forEach(id => ($(id).value = ''));
+    $('aBanner').checked = false; $('aBannerBox').style.display = 'none'; load();
+  }
 };
 $('aClear').onclick = async () => {
   const r = await api('/admin/announce', { method: 'POST', body: JSON.stringify({ clear: true }) });
