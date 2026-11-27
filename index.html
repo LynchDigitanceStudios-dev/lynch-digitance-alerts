@@ -226,12 +226,6 @@ section{position:relative;z-index:1;padding:88px 0}
 .rel-h{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:38px 0 14px}
 
 /* ---------- coming-soon strip ---------- */
-.soonbar{position:relative;z-index:40;background:linear-gradient(90deg,rgba(217,122,61,.2),rgba(217,122,61,.05));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.soon-in{display:flex;align-items:center;gap:12px;padding-top:9px;padding-bottom:9px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
-.soon-tag{flex:0 0 auto;background:linear-gradient(135deg,var(--gold-lt),var(--gold-dk));color:#2a1505;font-weight:800;font-size:10.5px;letter-spacing:.09em;padding:3px 9px;border-radius:6px}
-.soon-txt b{color:var(--text);font-weight:700}
-.soon-link{margin-left:auto;color:var(--gold);font-weight:700;text-decoration:none;white-space:nowrap}
-.soon-link:hover{text-decoration:underline}
 
 /* ---------- update steps ---------- */
 .warn{
@@ -428,6 +422,8 @@ footer{
 .rb-step.s4{border-color:rgba(74,217,145,.35)}
 .rb-step.s4 i{background:linear-gradient(135deg,#8af0bd,var(--ok))}
 .rb-step .tick{color:var(--ok);font-weight:800}
+.rb-file{margin-top:8px;font-size:12.5px;color:var(--muted);background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:6px 10px}
+.rb-warn{margin-top:8px;font-size:12px;line-height:1.45;color:#ffd9a8;background:rgba(217,122,61,.14);border-left:3px solid var(--copper,#d97a3d);border-radius:6px;padding:7px 9px}
 .rb-step.s2,.rb-step.s3,.rb-step.s4{animation:rbIn 12s infinite both}
 .rb-step.s2{animation-delay:0s}.rb-step.s3{animation-name:rbIn3}.rb-step.s4{animation-name:rbIn4}
 @keyframes rbIn{0%,14%{opacity:.18;transform:translateY(8px)}22%,92%{opacity:1;transform:none}100%{opacity:.18;transform:translateY(8px)}}
@@ -527,52 +523,46 @@ footer{
   </div>
 </div>
 
-<!-- ================= COMING SOON BANNER ================= -->
-<div class="soonbar" role="note" aria-label="Upcoming update">
-  <div class="wrap soon-in">
-    <span class="soon-tag">COMING SOON</span>
-    <span class="soon-txt"><b>v1.16.0</b> — faster Telegram replies, buyer-online alerts, files on Telegram, off-platform warnings.</span>
-    <a class="soon-link" href="#updates">See everything ↓</a>
-  </div>
-</div>
-
 <!-- ================= MAJOR UPDATE BANNER ================= -->
-<section class="rb" id="reply-update" aria-label="Major update: reply to buyers from Telegram">
+<section class="rb" id="reply-update" aria-label="Major update: v1.16.0 coming soon">
   <div class="wrap">
     <div class="rb-card">
       <div class="rb-grid">
         <div>
-          <span class="rb-tag">★ Major update · v1.15</span>
-          <h2>Answer your buyers <span class="grad">from Telegram.</span></h2>
-          <p class="sub">See a new message on your phone? Tap ↩️ Reply under the alert, or swipe-reply to it. Your answer is typed into that buyer's chat on Fiverr, from the right account, without opening a laptop tab.</p>
+          <span class="rb-tag">★ Major update · v1.16.0 — coming soon</span>
+          <h2>Reply in seconds. <span class="grad">Know the moment a buyer is online.</span></h2>
+          <p class="sub">The next build of Lynch Digitance Alerts: the ↩️ Reply button answers in seconds, 🟢 online pings tell you a buyer is waiting, images, PDFs and videos reach your Telegram, and off-platform warnings catch risky replies before they go out.</p>
           <div class="rb-chips">
-            <span>Several Fiverr accounts, one bot</span>
-            <span>Works on old alerts too</span>
-            <span>Just tap ↩️ Reply</span>
-            <span>You confirm every send</span>
+            <span>⚡ Reply button, fixed &amp; faster</span>
+            <span>🟢 Buyer online — with their name</span>
+            <span>📎 Files forwarded to Telegram</span>
+            <span>⚠️ Off-platform warnings</span>
+            <span>Reply on by default</span>
           </div>
           <div class="rb-cta">
-            <a class="btn btn-primary" href="lynch-digitance-alerts.zip" download>↓ Get the update</a>
-            <a class="btn btn-ghost" href="#updates">See what's new</a>
+            <a class="btn btn-primary" href="#v116">See everything ↓</a>
+            <a class="btn btn-ghost" href="lynch-digitance-alerts.zip">Download</a>
           </div>
-          <p class="rb-fine"><b>Optional and off by default.</b> It writes in your logged-in Fiverr tab, which Fiverr's rules may restrict, so try it on one account first. Turn it on in Settings → Reply from Telegram (one switch). It needs a free extension account and the browser open with that Fiverr tab.</p>
+          <p class="rb-fine"><b>Not released yet.</b> When it is ready the zip updates here, your popup shows a notice and Telegram tells you — no reinstall, every setting kept. Anyone still on an old build will be asked to update.</p>
         </div>
 
         <div class="rb-flow">
           <div class="rb-step">
-            <i>1</i><small>Buyer writes</small>
-            <span style="color:var(--gold)">💬 Fiverr · innocent_thames</span><br>
+            <i>🟢</i><small>Buyer comes online</small>
+            <span style="color:var(--gold)">🟢 Fiverr · innocent_thames</span><br>
             <span class="from">From: nathan_j_brooks</span><br>
-            Can you deploy my app to AWS?
+            🎯 nathan_j_brooks just came online.
           </div>
           <div class="rb-step s2">
-            <i>2</i><small>You swipe-reply in Telegram</small>
-            <span class="you">Yes, I can. About 3 days.</span>
+            <i>📎</i><small>They send a file</small>
+            <span class="from">From: nathan_j_brooks</span><br>
+            Here is the brief you asked for.
+            <div class="rb-file">📎 brief.pdf — forwarded to Telegram</div>
           </div>
           <div class="rb-step s3">
-            <i>3</i><small>You confirm</small>
-            Send this to nathan_j_brooks?
-            <div class="rb-btns"><b>✅ Send</b><b>✖ Cancel</b></div>
+            <i>⚠️</i><small>You reply from Telegram</small>
+            <span class="you">Let's talk on WhatsApp, it's easier</span>
+            <div class="rb-warn">⚠️ Fiverr warns against sharing off-platform contact details. Send anyway?</div>
           </div>
           <div class="rb-step s4">
             <i>✓</i><small>Delivered on Fiverr</small>
@@ -581,10 +571,27 @@ footer{
         </div>
       </div>
     </div>
+
+    <div id="v116" style="margin-top:44px">
+      <div class="rel-h" style="margin-top:0">Everything in v1.16.0 — coming soon</div>
+      <div class="rel rv soon" data-next>
+        <div class="rel-top">
+          <span class="rel-v">v1.16.0</span>
+          <span class="tagpill">Coming soon</span>
+        </div>
+        <ul>
+          <li><b>Reply from Telegram — faster, and the failures are fixed.</b> The ↩️ Reply button answers in seconds now, and the cases where it stalled or did nothing are fixed: slow page loads, a half-loaded inbox, and polling that fell behind.</li>
+          <li><b>Reply is on by default.</b> One less switch to find: every install can reply from its first alert. Turn it off whenever you like in Settings.</li>
+          <li><b>🟢 "Buyer is online" alerts.</b> The moment someone in your inbox comes online, Telegram tells you — with the buyer's name. Same buyer at most once every 30 minutes.</li>
+          <li><b>Files reach Telegram too.</b> Images, PDFs and videos sent on Fiverr are forwarded with the alert, with the file name. If a file is too big for Telegram, you get a link instead.</li>
+          <li><b>Off-platform warnings.</b> If a reply you type in Telegram mentions WhatsApp, Telegram, Discord, email, payment or money, you get the same kind of warning Fiverr shows — before anything is sent.</li>
+          <li><b>Replies to reviews.</b> When the studio answers a review, the reply now appears under it, in the extension and on this page.</li>
+          <li><b>Behind-the-scenes fixes.</b> Bugs that slowed the Reply button and delayed Telegram messages are gone, and replies are much faster.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </section>
-
-<!-- ================= HOW ================= -->
 <section id="how">
   <div class="wrap">
     <div class="rv">
@@ -727,28 +734,12 @@ footer{
 <section id="updates">
   <div class="wrap">
     <div class="rv">
-      <span class="eyebrow">What's new</span>
-      <h2 class="sec-h">What's coming in <span class="gold">v1.16.0</span>.</h2>
-      <p class="sec-p">Not out yet — this is everything that ships in it. The update arrives as a normal zip and keeps every setting; you'll be told here, in the popup and on Telegram the moment it is ready.</p>
+      <span class="eyebrow">Release history</span>
+      <h2 class="sec-h">Every release, <span class="gold">in full</span>.</h2>
+      <p class="sec-p">What has already shipped, newest first. What's coming in v1.16.0 is at the top of the page.</p>
     </div>
 
     <div style="margin-top:40px">
-      <div class="rel rv soon" data-next>
-        <div class="rel-top">
-          <span class="rel-v">v1.16.0</span>
-          <span class="tagpill">Coming soon</span>
-        </div>
-        <ul>
-          <li><b>Reply from Telegram — faster, and the failures are fixed.</b> The ↩️ Reply button answers in seconds now, and the cases where it stalled or did nothing are fixed: slow page loads, a half-loaded inbox, and polling that fell behind.</li>
-          <li><b>Reply is on by default.</b> One less switch to find: every install can reply from its first alert. Turn it off whenever you like in Settings.</li>
-          <li><b>🟢 "Buyer is online" alerts.</b> The moment someone in your inbox comes online, Telegram tells you — with the buyer's name. Same buyer at most once every 30 minutes.</li>
-          <li><b>Files reach Telegram too.</b> Images, PDFs and videos sent on Fiverr are forwarded with the alert, with the file name. If a file is too big for Telegram, you get a link instead.</li>
-          <li><b>Off-platform warnings.</b> If a reply you type in Telegram mentions WhatsApp, Telegram, Discord, email, payment or money, you get the same kind of warning Fiverr shows — before anything is sent.</li>
-          <li><b>Replies to reviews.</b> When the studio answers a review, the reply now appears under it, in the extension and on this page.</li>
-          <li><b>Behind-the-scenes fixes.</b> Bugs that slowed the Reply button and delayed Telegram messages are gone, and replies are much faster.</li>
-        </ul>
-      </div>
-
       <div class="rel-h">Released — current build v<span id="vHead">1.15.2</span></div>
 
       <div class="rel rv">
