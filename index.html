@@ -226,6 +226,12 @@ section{position:relative;z-index:1;padding:88px 0}
 .rel-h{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:38px 0 14px}
 
 /* ---------- coming-soon strip ---------- */
+.soonbar{position:relative;z-index:40;background:linear-gradient(90deg,rgba(217,122,61,.2),rgba(217,122,61,.05));border-bottom:1px solid var(--line)}
+.soon-in{display:flex;align-items:center;gap:12px;padding-top:9px;padding-bottom:9px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.soon-tag{flex:0 0 auto;background:linear-gradient(135deg,var(--gold-lt),var(--gold-dk));color:#2a1505;font-weight:800;font-size:10.5px;letter-spacing:.09em;padding:3px 9px;border-radius:6px}
+.soon-txt b{color:var(--text);font-weight:700}
+.soon-link{margin-left:auto;color:var(--gold);font-weight:700;text-decoration:none;white-space:nowrap}
+.soon-link:hover{text-decoration:underline}
 
 /* ---------- update steps ---------- */
 .warn{
@@ -467,6 +473,14 @@ footer{
   </nav>
 </header>
 
+<div class="soonbar" role="note" aria-label="Upcoming update">
+  <div class="wrap soon-in">
+    <span class="soon-tag">COMING SOON</span>
+    <span class="soon-txt"><b>v1.16.0</b> — faster Telegram replies, buyer-online alerts, files on Telegram, off-platform warnings.</span>
+    <a class="soon-link" href="#v116">See everything ↓</a>
+  </div>
+</div>
+
 <main id="top">
 
 <!-- ================= HERO ================= -->
@@ -530,14 +544,14 @@ footer{
       <div class="rb-grid">
         <div>
           <span class="rb-tag">★ Major update · v1.16.0 — coming soon</span>
-          <h2>Reply in seconds. <span class="grad">Know the moment a buyer is online.</span></h2>
-          <p class="sub">The next build of Lynch Digitance Alerts: the ↩️ Reply button answers in seconds, 🟢 online pings tell you a buyer is waiting, images, PDFs and videos reach your Telegram, and off-platform warnings catch risky replies before they go out.</p>
+          <h2>📎 Files forwarded to Telegram. <span class="grad">Know the moment a buyer is online.</span></h2>
+          <p class="sub">The next build of Lynch Digitance Alerts: images, PDFs and videos sent on Fiverr reach your Telegram with the alert, 🟢 online pings tell you a buyer is waiting, off-platform warnings catch risky replies before they go out, and the ↩️ Reply button is faster with its failures fixed.</p>
           <div class="rb-chips">
-            <span>⚡ Reply button, fixed &amp; faster</span>
-            <span>🟢 Buyer online — with their name</span>
             <span>📎 Files forwarded to Telegram</span>
+            <span>🟢 Buyer online — with their name</span>
             <span>⚠️ Off-platform warnings</span>
             <span>Reply on by default</span>
+            <span>⚡ Reply button, fixed &amp; faster</span>
           </div>
           <div class="rb-cta">
             <a class="btn btn-primary" href="#v116">See everything ↓</a>
