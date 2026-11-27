@@ -385,14 +385,17 @@ async function handleAccount(request, env, path) {
       if (rec) return ajson({ error: 'That email already has an account — sign in instead.' }, 409);
       const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
       const settings = body.settings && typeof body.settings === 'object' ? body.settings : {};
-      await putUser(env, email, { salt, hash: await hashPw(pw, salt), settings, updated: Date.now(), created: Date.now(), lastSeen: Date.now() }, ver);
-      return ajson({ token: await newSession(env, email), email, settings });
+      const displayName = cleanDisplayName(body.name);
+      const fres = { salt, hash: await hashPw(pw, salt), settings, updated: Date.now(), created: Date.now(), lastSeen: Date.now() };
+      if (displayName) fres.displayName = displayName;
+      await putUser(env, email, fres, ver);
+      return ajson({ token: await newSession(env, email), email, settings, displayName });
     }
     if (!rec || !sameStr(await hashPw(pw, rec.salt), rec.hash)) {
       return ajson({ error: 'Wrong email or password.' }, 401);
     }
     await touchUser(env, email, rec, ver);
-    return ajson({ token: await newSession(env, email), email, settings: rec.settings || {}, updated: rec.updated });
+    return ajson({ token: await newSession(env, email), email, settings: rec.settings || {}, updated: rec.updated, displayName: rec.displayName || '' });
   }
 
   // Everything else needs a session.
@@ -404,7 +407,7 @@ async function handleAccount(request, env, path) {
 
   if (path === '/account/settings' && request.method === 'GET') {
     await touchUser(env, email, rec, ver);
-    return ajson({ email, settings: rec.settings || {}, updated: rec.updated || 0 });
+    return ajson({ email, settings: rec.settings || {}, updated: rec.updated || 0, displayName: rec.displayName || '' });
   }
   if (path === '/account/settings' && request.method === 'PUT') {
     const settings = body.settings;
@@ -414,6 +417,23 @@ async function handleAccount(request, env, path) {
     rec.settings = settings; rec.updated = Date.now(); rec.lastSeen = Date.now();
     await putUser(env, email, rec, ver);
     return ajson({ ok: true, updated: rec.updated });
+  }
+  if (path === '/account/profile') {
+    if (request.method === 'GET') return ajson({ email, displayName: rec.displayName || '' });
+    const name = cleanDisplayName(body.name);
+    if (!name) return ajson({ error: 'Use 2–24 letters, numbers, spaces, . _ - or an apostrophe.' }, 400);
+    rec.displayName = name;
+    rec.updated = Date.now();
+    rec.lastSeen = Date.now();
+    await putUser(env, email, rec, ver);
+    // every review this account already wrote takes the chosen name too
+    try {
+      if (env.DB) {
+        await env.DB.prepare('UPDATE reviews SET name = ? WHERE email = ?').bind(name, email).run();
+        RV_CACHE.clear();
+      }
+    } catch { /* editing the profile must not fail because of a review row */ }
+    return ajson({ ok: true, name });
   }
   if (path === '/account/logout' && request.method === 'POST') {
     SESS_CACHE.delete(token);
@@ -602,6 +622,15 @@ async function handleTelegram(request, env, routeKey) {
       if (!target) return ok();
       await queueCmd(env, route.email, target.account, {
         id: rid(8), t: 'prompt', buyer: target.buyer, cb: q.id, msgId: q.message.message_id, at: now
+      });
+      return ok();
+    }
+    const me = /^fve:([a-z0-9]{8})$/.exec(q.data || '');
+    if (me) {                                    // ✏️ Edit: drop the flagged draft, ask for a new one
+      const meta = await env.DB.prepare('SELECT email, account FROM cmds WHERE id = ?').bind(me[1]).first();
+      if (!meta || meta.email !== route.email) return ok();
+      await queueCmd(env, route.email, meta.account, {
+        id: rid(8), t: 'edit', cmd: me[1], cb: q.id, msgId: q.message.message_id, at: now
       });
       return ok();
     }
@@ -848,7 +877,20 @@ const ANON_NAME = 'Alerts user';
 const RV_CACHE = new Map();               // limit -> { at, body }   (a flood of page views must not become a flood of reads)
 class RvErr extends Error { constructor(m, s) { super(m); this.status = s; } }
 
-function reviewName(email) {
+/* The name a person chose for their profile, or '' when it is unusable.
+   2–24 characters: letters (any language), numbers, space, . _ - ' */
+function cleanDisplayName(v) {
+  if (typeof v !== 'string') return '';
+  const t = v.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (t.length < 2 || t.length > 24) return '';
+  if (/https?:\/\/|www\.|@/i.test(t)) return '';
+  if (!/^[\p{L}\p{N} '._-]+$/u.test(t)) return '';
+  return t;
+}
+
+function reviewName(email, displayName) {
+  const chosen = cleanDisplayName(displayName);
+  if (chosen) return chosen;
   if (!email) return ANON_NAME;
   const local = String(email).split('@')[0].split('+')[0];
   const parts = local.split(/[._-]+/).map(p => p.replace(/[^a-z]/gi, '')).filter(Boolean);
@@ -926,6 +968,7 @@ async function handleReviews(request, env, url) {
 
       const now = Date.now(), DAY = 86400000;
       const ipHash = (await hmacHex(env.PEPPER, 'review-ip:' + ip)).slice(0, 24);
+
       let row = null;
       if (email) row = await env.DB.prepare('SELECT id, name FROM reviews WHERE email = ?').bind(email).first();
       let installFree = !!install;
@@ -935,26 +978,50 @@ async function handleReviews(request, env, url) {
         if (byInstall && (!byInstall.email || !email || byInstall.email === email)) row = byInstall;
         else if (byInstall) installFree = false;
       }
+
+      /* The name shown is the one on the profile. A name typed with a review is
+         saved to the profile too, so every review by this account — old ones
+         included — is shown under it. */
+      let displayName = '';
+      if (email) {
+        try { const urec = await env.ACCOUNTS.get('user:' + email, 'json'); displayName = (urec && urec.displayName) || ''; } catch {}
+      }
+      const typed = cleanDisplayName(b.name);
+      let shownName;
+      if (email) {
+        if (typed && typed !== displayName) {
+          displayName = typed;
+          try {
+            const rec = await env.ACCOUNTS.get('user:' + email, 'json');
+            if (rec) { rec.displayName = typed; rec.updated = now; rec.lastSeen = rec.lastSeen || now; await putUser(env, email, rec, version || undefined); }
+            await env.DB.prepare('UPDATE reviews SET name = ? WHERE email = ?').bind(reviewName(email, typed), email).run();
+          } catch { /* the review itself must still save */ }
+        }
+        shownName = reviewName(email, displayName);
+      } else {
+        shownName = typed || (row && row.name) || ANON_NAME;
+      }
+
       try {
         if (row) {
           if (email) {
             await env.DB.prepare('UPDATE reviews SET rating = ?, body = ?, version = COALESCE(?, version), updated_at = ?, email = ?, name = ?, install_id = COALESCE(install_id, ?) WHERE id = ?')
-              .bind(rating, text, version, now, email, reviewName(email), installFree ? install : null, row.id).run();
+              .bind(rating, text, version, now, email, shownName, installFree ? install : null, row.id).run();
           } else {
-            await env.DB.prepare('UPDATE reviews SET rating = ?, body = ?, version = COALESCE(?, version), updated_at = ? WHERE id = ?').bind(rating, text, version, now, row.id).run();
+            await env.DB.prepare('UPDATE reviews SET rating = ?, body = ?, version = COALESCE(?, version), updated_at = ?, name = ? WHERE id = ?').bind(rating, text, version, now, shownName, row.id).run();
           }
         } else {
           const recent = (await env.DB.prepare('SELECT COUNT(*) AS n FROM reviews WHERE ip_hash = ? AND created_at > ?').bind(ipHash, now - DAY).first()).n;
           if (recent >= 3) throw new RvErr("That's enough reviews from this connection for today.", 429);
           await env.DB.prepare('INSERT INTO reviews (email, install_id, name, rating, body, version, created_at, updated_at, hidden, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)')
-            .bind(email || null, installFree ? install : null, reviewName(email), rating, text, version, now, now, ipHash).run();
+            .bind(email || null, installFree ? install : null, shownName, rating, text, version, now, now, ipHash).run();
         }
       } catch (e) {
         if (e instanceof RvErr) throw e;
         throw new RvErr('Your review is already saved.', 409);
       }
       RV_CACHE.clear();
-      return rvJson({ ok: true, name: email ? reviewName(email) : row ? row.name : ANON_NAME, created: !row }, row ? 200 : 201);
+      return rvJson({ ok: true, name: email ? shownName : row ? row.name : ANON_NAME, created: !row }, row ? 200 : 201);
     }
     return rvJson({ error: 'Not found' }, 404);
   } catch (e) {
