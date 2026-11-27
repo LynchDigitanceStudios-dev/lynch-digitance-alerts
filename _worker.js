@@ -1021,7 +1021,7 @@ async function handleReviews(request, env, url) {
         throw new RvErr('Your review is already saved.', 409);
       }
       RV_CACHE.clear();
-      return rvJson({ ok: true, name: email ? shownName : row ? row.name : ANON_NAME, created: !row }, row ? 200 : 201);
+      return rvJson({ ok: true, name: shownName, created: !row }, row ? 200 : 201);
     }
     return rvJson({ error: 'Not found' }, 404);
   } catch (e) {
