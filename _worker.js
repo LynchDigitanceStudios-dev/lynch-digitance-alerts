@@ -607,7 +607,8 @@ async function handleTelegram(request, env, routeKey) {
     if (!text) return ok();
     const id = rid(8);
     await queueCmd(env, route.email, target.account, {
-      id, t: 'reply', buyer: target.buyer, text, at: now, msgId: m.message_id
+      id, t: 'reply', buyer: target.buyer, text, at: now, msgId: m.message_id,
+      rt: m.reply_to_message.message_id
     });
     await env.DB.prepare('INSERT OR REPLACE INTO cmds (id, email, account, at) VALUES (?, ?, ?, ?)').bind(id, route.email, target.account, now).run();
     return ok();
@@ -622,6 +623,15 @@ async function handleTelegram(request, env, routeKey) {
       if (!target) return ok();
       await queueCmd(env, route.email, target.account, {
         id: rid(8), t: 'prompt', buyer: target.buyer, cb: q.id, msgId: q.message.message_id, at: now
+      });
+      return ok();
+    }
+    if (q.data === 'fvd' || q.data === 'fvl') {  // 🗑 Delete / ✏️ Edit the last reply sent
+      const target = parseAlert(q.message.text);
+      if (!target) return ok();
+      await queueCmd(env, route.email, target.account, {
+        id: rid(8), t: q.data === 'fvd' ? 'deleteLast' : 'editLast',
+        buyer: target.buyer, cb: q.id, msgId: q.message.message_id, at: now
       });
       return ok();
     }
