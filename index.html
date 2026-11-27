@@ -217,6 +217,22 @@ section{position:relative;z-index:1;padding:88px 0}
 .rel li{margin-bottom:10px}
 .rel li b{color:var(--text);font-weight:700}
 
+/* upcoming release: same card, warmed up */
+.rel.soon{
+  background:linear-gradient(165deg,rgba(217,122,61,.15),rgba(217,122,61,.03));
+  border-color:rgba(217,122,61,.38);
+}
+.rel.soon::before{background:linear-gradient(180deg,var(--gold-lt),var(--gold))}
+.rel-h{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:38px 0 14px}
+
+/* ---------- coming-soon strip ---------- */
+.soonbar{position:relative;z-index:40;background:linear-gradient(90deg,rgba(217,122,61,.2),rgba(217,122,61,.05));border-bottom:1px solid var(--line)}
+.soon-in{display:flex;align-items:center;gap:12px;padding-top:9px;padding-bottom:9px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.soon-tag{flex:0 0 auto;background:linear-gradient(135deg,var(--gold-lt),var(--gold-dk));color:#2a1505;font-weight:800;font-size:10.5px;letter-spacing:.09em;padding:3px 9px;border-radius:6px}
+.soon-txt b{color:var(--text);font-weight:700}
+.soon-link{margin-left:auto;color:var(--gold);font-weight:700;text-decoration:none;white-space:nowrap}
+.soon-link:hover{text-decoration:underline}
+
 /* ---------- update steps ---------- */
 .warn{
   margin-top:26px;padding:20px 22px;border-radius:14px;
@@ -454,6 +470,14 @@ footer{
     <a class="btn btn-primary btn-sm" href="lynch-digitance-alerts.zip" download>Download</a>
   </nav>
 </header>
+
+<div class="soonbar" role="note" aria-label="Upcoming update">
+  <div class="wrap soon-in">
+    <span class="soon-tag">COMING SOON</span>
+    <span class="soon-txt"><b>v1.16.0</b> — faster Telegram replies, buyer-online alerts, files on Telegram, off-platform warnings.</span>
+    <a class="soon-link" href="#updates">See everything ↓</a>
+  </div>
+</div>
 
 <main id="top">
 
@@ -703,15 +727,33 @@ footer{
   <div class="wrap">
     <div class="rv">
       <span class="eyebrow">What's new</span>
-      <h2 class="sec-h">Version <span id="vHead">1.15.2</span> is out.</h2>
-      <p class="sec-p">Already installed? Scroll past the notes — updating takes about thirty seconds and you keep every setting.</p>
+      <h2 class="sec-h">What's coming in <span class="gold">v1.16.0</span>.</h2>
+      <p class="sec-p">Not out yet — this is everything that ships in it. The update arrives as a normal zip and keeps every setting; you'll be told here, in the popup and on Telegram the moment it is ready.</p>
     </div>
 
     <div style="margin-top:40px">
+      <div class="rel rv soon" data-next>
+        <div class="rel-top">
+          <span class="rel-v">v1.16.0</span>
+          <span class="tagpill">Coming soon</span>
+        </div>
+        <ul>
+          <li><b>Reply from Telegram — faster, and the failures are fixed.</b> The ↩️ Reply button answers in seconds now, and the cases where it stalled or did nothing are fixed: slow page loads, a half-loaded inbox, and polling that fell behind.</li>
+          <li><b>Reply is on by default.</b> One less switch to find: every install can reply from its first alert. Turn it off whenever you like in Settings.</li>
+          <li><b>🟢 "Buyer is online" alerts.</b> The moment someone in your inbox comes online, Telegram tells you — with the buyer's name. Same buyer at most once every 30 minutes.</li>
+          <li><b>Files reach Telegram too.</b> Images, PDFs and videos sent on Fiverr are forwarded with the alert, with the file name. If a file is too big for Telegram, you get a link instead.</li>
+          <li><b>Off-platform warnings.</b> If a reply you type in Telegram mentions WhatsApp, Telegram, Discord, email, payment or money, you get the same kind of warning Fiverr shows — before anything is sent.</li>
+          <li><b>Replies to reviews.</b> When the studio answers a review, the reply now appears under it, in the extension and on this page.</li>
+          <li><b>Behind-the-scenes fixes.</b> Bugs that slowed the Reply button and delayed Telegram messages are gone, and replies are much faster.</li>
+        </ul>
+      </div>
+
+      <div class="rel-h">Released — current build v<span id="vHead">1.15.2</span></div>
+
       <div class="rel rv">
         <div class="rel-top">
           <span class="rel-v">v1.15.2</span>
-          <span class="tagpill">Latest</span>
+          <span class="tagpill grey">Current</span>
         </div>
         <ul>
           <li><b>Reviews.</b> A new Reviews tab: tell us how it is working for you with 1 to 5 stars and a short note. Reviews appear in the extension and on this page under a short name (never your email). You see a short "what's new" note the first time you open the extension after updating.</li>
@@ -988,7 +1030,7 @@ document.getElementById('yr').textContent = new Date().getFullYear();
     if (!version) return;
     const hero = document.getElementById('vHero');
     const head = document.getElementById('vHead');
-    const rel  = document.querySelector('.rel .rel-v');
+    const rel  = document.querySelector('.rel:not([data-next]) .rel-v');
     if (hero) hero.textContent = 'v' + version;
     if (head) head.textContent = version;
     if (rel)  rel.textContent  = 'v' + version;
