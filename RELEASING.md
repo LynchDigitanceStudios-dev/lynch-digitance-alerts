@@ -52,6 +52,24 @@ Compress-Archive -Path $items.FullName -DestinationPath $dest -CompressionLevel 
 
 4. Update `version.json` — the `version` must **match manifest.json exactly**, and write a
    one-line `notes` describing what changed
+
+### The 3-day update gate (builds from v1.16.0 on)
+
+Add **`releasedAt`** to `version.json` — the exact moment the zip goes live, e.g.
+`"2026-12-01T18:00:00Z"` (or milliseconds). From that moment every older build:
+
+- gets one Telegram nudge a day until the deadline (day 1, day 2),
+- after `gateDays` (default **3**) shows the "update required" screen, stops alerting,
+  and is told to download — it clears itself the moment the new build runs.
+
+`"gate": false` in `version.json` is the **kill switch** (no build is ever forced).
+`"gateDays": 5` changes the window. Without `releasedAt` the old soft behaviour
+(badge + one notice) stays exactly as before.
+
+Builds older than v1.16.0 don't contain the gate code. Lock them the server way: on
+release day + 3, publish an **update required** maintenance notice from `/admin`
+with `minVersion` set to the new build — every older build shows the blocked screen.
+
 5. Redeploy the site folder to Cloudflare Pages (**Create new deployment** → drag the folder)
 
 Within six hours every user sees the badge. Nobody gets stranded on an old build.
